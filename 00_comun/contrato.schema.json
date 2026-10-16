@@ -1,0 +1,345 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://mesa-ayuda-nimbo.example/contrato/v1.json",
+  "title": "Mesa de ayuda Nimbo · contrato v1 de /api/triage",
+  "description": "Forma de toda respuesta que el navegador recibe de /api/triage, venga del backend que venga (n8n, Make o LangChain). La solicitud es siempre {\"mensaje\": string de 3 a 1000 caracteres}. El navegador solo ve esta forma: el proxy descarta lo demás.",
+  "oneOf": [
+    {
+      "$ref": "#/$defs/exito"
+    },
+    {
+      "$ref": "#/$defs/error"
+    }
+  ],
+  "$defs": {
+    "exito": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "ok",
+        "estado",
+        "respuesta",
+        "citas",
+        "pedido",
+        "solicitud",
+        "cola",
+        "razon",
+        "alerta",
+        "pasos",
+        "meta"
+      ],
+      "properties": {
+        "ok": {
+          "const": true
+        },
+        "estado": {
+          "enum": [
+            "respondida",
+            "sin_informacion",
+            "fuera_de_alcance",
+            "requiere_humano"
+          ],
+          "description": "Veredicto en cuatro valores que el código puede leer."
+        },
+        "respuesta": {
+          "type": "string",
+          "maxLength": 2000,
+          "description": "Texto para el cliente. Vacío en rutas que solo clasifican (A)."
+        },
+        "citas": {
+          "type": "array",
+          "maxItems": 6,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^POL-\\d{2}$"
+          }
+        },
+        "pedido": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/pedido"
+            }
+          ]
+        },
+        "solicitud": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/solicitud"
+            }
+          ]
+        },
+        "cola": {
+          "enum": [
+            "devoluciones",
+            "despachos",
+            "postventa",
+            "revision_humana",
+            "fuera_de_alcance",
+            null
+          ],
+          "description": "Cola de destino (rutas con workflow: B)."
+        },
+        "razon": {
+          "type": "string",
+          "maxLength": 200,
+          "description": "Por qué se eligió esa cola."
+        },
+        "alerta": {
+          "type": "string",
+          "maxLength": 200,
+          "description": "Aviso de una regla de negocio; vacío si no hay."
+        },
+        "pasos": {
+          "type": "array",
+          "maxItems": 10,
+          "items": {
+            "$ref": "#/$defs/paso"
+          }
+        },
+        "meta": {
+          "$ref": "#/$defs/metaExito"
+        }
+      }
+    },
+    "pedido": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "n_pedido",
+        "estado",
+        "producto",
+        "fecha_entrega",
+        "dias_desde_entrega"
+      ],
+      "properties": {
+        "n_pedido": {
+          "type": "integer"
+        },
+        "estado": {
+          "type": "string",
+          "maxLength": 40
+        },
+        "producto": {
+          "type": "string",
+          "maxLength": 120
+        },
+        "fecha_entrega": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 10
+        },
+        "dias_desde_entrega": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        }
+      }
+    },
+    "solicitud": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "es_consulta_tienda",
+        "n_pedido",
+        "motivo",
+        "urgencia",
+        "resumen"
+      ],
+      "properties": {
+        "es_consulta_tienda": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "n_pedido": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "motivo": {
+          "enum": [
+            "devolucion",
+            "cambio",
+            "despacho",
+            "producto_danado",
+            "garantia",
+            "reembolso",
+            "otro",
+            null
+          ]
+        },
+        "urgencia": {
+          "enum": [
+            "baja",
+            "media",
+            "alta",
+            null
+          ]
+        },
+        "resumen": {
+          "type": "string",
+          "maxLength": 200
+        }
+      }
+    },
+    "paso": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "tipo",
+        "nombre",
+        "detalle"
+      ],
+      "properties": {
+        "tipo": {
+          "enum": [
+            "herramienta",
+            "paso"
+          ]
+        },
+        "nombre": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 60
+        },
+        "detalle": {
+          "type": "string",
+          "maxLength": 200
+        }
+      }
+    },
+    "metaExito": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "backend",
+        "ruta",
+        "modelo",
+        "llamadas_modelo"
+      ],
+      "properties": {
+        "version": {
+          "const": "1.0"
+        },
+        "backend": {
+          "type": "string",
+          "maxLength": 40
+        },
+        "ruta": {
+          "enum": [
+            "",
+            "A",
+            "B",
+            "R",
+            "C",
+            "D"
+          ]
+        },
+        "modelo": {
+          "type": "string",
+          "maxLength": 80
+        },
+        "llamadas_modelo": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "latencia_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "id": {
+          "type": "string",
+          "maxLength": 40
+        }
+      }
+    },
+    "error": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "ok",
+        "error",
+        "meta"
+      ],
+      "properties": {
+        "ok": {
+          "const": false
+        },
+        "error": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "codigo",
+            "mensaje",
+            "detalle",
+            "reintentable"
+          ],
+          "properties": {
+            "codigo": {
+              "enum": [
+                "validacion",
+                "acceso",
+                "limite",
+                "sin_configurar",
+                "backend_acceso",
+                "backend_url",
+                "cuota_ia",
+                "backend",
+                "timeout",
+                "respuesta_invalida"
+              ]
+            },
+            "mensaje": {
+              "type": "string",
+              "maxLength": 200
+            },
+            "detalle": {
+              "type": "string",
+              "maxLength": 200
+            },
+            "reintentable": {
+              "type": "boolean"
+            }
+          }
+        },
+        "meta": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "version",
+            "backend",
+            "id"
+          ],
+          "properties": {
+            "version": {
+              "const": "1.0"
+            },
+            "backend": {
+              "type": "string",
+              "maxLength": 40
+            },
+            "id": {
+              "type": "string",
+              "maxLength": 40
+            }
+          }
+        }
+      }
+    }
+  }
+}

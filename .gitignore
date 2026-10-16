@@ -1,0 +1,17 @@
+# Entornos y secretos
+.env
+.env.*
+!.env.example
+
+# Vercel
+.vercel/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Sistema
+.DS_Store
+Thumbs.db

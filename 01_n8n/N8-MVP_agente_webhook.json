@@ -1,0 +1,436 @@
+{
+  "name": "MVP · Mesa de ayuda Nimbo · Kit MVP",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## MVP · Mesa de ayuda Nimbo\n**Kit MVP · Ruta C (agente) · Tienda Nimbo (ficticia)** · v1.0 · octubre 2026\n\nEste workflow es el cerebro de la pantalla web: Vercel le envía `{\"mensaje\": \"...\"}` y él responde con el JSON del contrato v1.\n\n### Puesta en marcha (5 minutos)\n1. **Credencial del modelo:** abre el nodo **Modelo · Nemotron**, pulsa *Connect to OpenRouter* y pega tu clave de openrouter.ai/keys en *API Key*.\n2. **Credencial del webhook:** abre el nodo **Webhook · Mesa de ayuda**, pulsa *Connect to Header Auth* y crea la credencial con *Name* = `x-api-key` y *Value* = un secreto largo que inventes (cópialo: lo necesitará Vercel).\n3. Pulsa **Publish** (arriba a la derecha). Sin publicar, la URL de producción no existe.\n4. En el nodo Webhook, pestaña **Production URL**: copia la URL. Esa URL y tu secreto son las dos variables que pide Vercel.\n\n### Probar antes de conectar Vercel\nPulsa **Execute workflow** y, desde tu terminal, llama a la **Test URL** con `curl` (la guía trae el comando completo). Cuando todo funcione, usa la Production URL.\n\n### Para tu caso\nEdita solo los nodos que tienen una nota **EDITA AQUÍ**.",
+        "height": 480,
+        "width": 620,
+        "color": 5
+      },
+      "id": "700385f9-1e6d-568f-80e7-d3983572703f",
+      "name": "Nota · Instrucciones",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -720,
+        -330
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "mesa-ayuda-nimbo",
+        "authentication": "headerAuth",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "3aaab1ee-da2e-542e-8feb-c417a514d9fc",
+      "name": "Webhook · Mesa de ayuda",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -60,
+        0
+      ],
+      "webhookId": "cc6f909b-7ab6-5ef7-bd4a-5d8b109ec643"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Lee lo que envió Vercel ({ \"mensaje\": \"...\" }) y lo deja listo para el agente.\n// Vercel ya validó el mensaje, pero esta URL es pública: el workflow también se defiende.\nconst MIN = 3, MAX = 1000;\nconst mensaje = $input.first().json.body?.mensaje;\nif (typeof mensaje !== 'string' || mensaje.trim().length < MIN || mensaje.length > MAX) {\n  return [{ json: { valido: false } }];\n}\nreturn [{ json: { valido: true, mensaje: mensaje.trim() } }];"
+      },
+      "id": "f8797239-159f-54d9-8a12-5abb6bf6a59c",
+      "name": "Preparar mensaje",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        200,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "ee135913-9273-59f1-b6ca-dbaf2a860c7b",
+              "leftValue": "={{ $json.valido }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "ea075618-0b1b-5367-a979-f01a88b6dc75",
+      "name": "¿Mensaje válido?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        460,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// El cuerpo no trae un «mensaje» de texto entre 3 y 1000 caracteres.\nreturn [{ json: {\n  http: 400,\n  cuerpo: { ok: false, error: { codigo: 'validacion', mensaje: 'Escribe un mensaje de entre 3 y 1000 caracteres.',\n                                detalle: 'falta el campo mensaje o su largo no es válido', reintentable: false } },\n} }];"
+      },
+      "id": "51898965-1a9c-5b63-9983-f4fd07c5fb91",
+      "name": "Mensaje inválido",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        720,
+        -250
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.mensaje }}",
+        "options": {
+          "systemMessage": "Eres el asistente de la mesa de ayuda de Tienda Nimbo (tienda online chilena, ficticia). Hoy es 2026-10-15.\n\nHerramientas:\n- buscar_politicas: busca en las políticas oficiales (devoluciones, cambios, despachos, productos dañados, garantía, reembolsos).\n- consultar_pedido: entrega estado y fechas de un pedido a partir de su número.\n\nReglas:\n- Si la pregunta menciona un número de pedido, usa consultar_pedido. Si la respuesta depende de una regla de la tienda, usa buscar_politicas. Si necesitas ambas cosas, usa ambas.\n- Nunca inventes datos de pedidos ni plazos: usa solo lo que entreguen las herramientas.\n- Si consultar_pedido no encuentra el pedido, dilo con la frase \"No encontré el pedido\" y pide verificar el número.\n- Si la pregunta no tiene relación con Tienda Nimbo, no uses herramientas y responde exactamente: \"Fuera de alcance: solo respondo consultas sobre Tienda Nimbo.\"\n- Responde en máximo 4 frases y cita entre corchetes la política usada, por ejemplo [POL-01].\n- Escribe en texto plano, sin Markdown ni listas, y dirígete al cliente de tú.",
+          "maxIterations": 6,
+          "returnIntermediateSteps": true
+        }
+      },
+      "id": "41519564-439d-5300-97f4-67602dbe43a5",
+      "name": "Agente",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        740,
+        40
+      ],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "model": "nvidia/nemotron-3-ultra-550b-a55b:free",
+        "options": {
+          "temperature": 0,
+          "timeout": 60000,
+          "maxRetries": 2
+        }
+      },
+      "id": "045ed339-43bc-529e-84a1-62d71a8656d7",
+      "name": "Modelo · Nemotron",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [
+        640,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "description": "Busca en las políticas oficiales de Tienda Nimbo (devoluciones, cambios, despachos, productos dañados, garantía y reembolsos). Úsala cuando la respuesta dependa de una regla o plazo de la tienda. Recibe una consulta en texto y devuelve los fragmentos más relevantes con su código.",
+        "language": "javaScript",
+        "jsCode": "// EDITA AQUÍ · Corpus de políticas (sintético). Para tu caso, reemplaza la lista por tus documentos.\nconst POLITICAS = [{\"id\": \"POL-01\", \"titulo\": \"Devoluciones\", \"texto\": \"Puedes devolver un producto dentro de 30 días corridos desde la fecha de entrega, siempre que esté sin uso, con sus etiquetas y con su boleta o número de pedido. No se aceptan devoluciones de productos personalizados, ropa interior ni alimentos. La devolución se solicita en la mesa de ayuda indicando el número de pedido. El envío de vuelta es gratuito si el producto llegó con falla o equivocado; en los demás casos lo paga el cliente.\"}, {\"id\": \"POL-02\", \"titulo\": \"Cambios de talla o color\", \"texto\": \"Los cambios de talla o color se aceptan dentro de 15 días corridos desde la entrega, sujetos a stock. El producto debe estar sin uso y con etiquetas. Si no hay stock del producto solicitado, se ofrece una devolución según la política de devoluciones. Cada pedido admite un solo cambio.\"}, {\"id\": \"POL-03\", \"titulo\": \"Despachos\", \"texto\": \"Tienda Nimbo despacha solo dentro de Chile. Plazos de entrega: Región Metropolitana, 2 a 4 días hábiles; otras regiones, 4 a 8 días hábiles; zonas extremas (Arica y Parinacota, Aysén y Magallanes), hasta 12 días hábiles. El despacho es gratuito en compras sobre $40.000; bajo ese monto cuesta $3.990. Un pedido se considera atrasado si supera el plazo máximo de su zona.\"}, {\"id\": \"POL-04\", \"titulo\": \"Productos dañados o incorrectos\", \"texto\": \"Si un producto llega dañado o no corresponde a lo comprado, debes reportarlo dentro de 48 horas desde la entrega, adjuntando fotos del producto y del embalaje. Si el reporte llega a tiempo, Tienda Nimbo repone el producto sin costo o reembolsa el total, a elección del cliente. Los reportes fuera de plazo se evalúan como garantía.\"}, {\"id\": \"POL-05\", \"titulo\": \"Garantía\", \"texto\": \"Todos los productos tienen 6 meses de garantía por fallas de fabricación, contados desde la entrega. La garantía no cubre daños por mal uso, golpes ni desgaste normal. Para usarla se requiere el número de pedido y una descripción de la falla; el producto pasa por una revisión técnica de hasta 10 días hábiles.\"}, {\"id\": \"POL-06\", \"titulo\": \"Reembolsos\", \"texto\": \"Los reembolsos se hacen al mismo medio de pago de la compra, entre 5 y 10 días hábiles después de que el producto devuelto llega a bodega y es aprobado. Tienda Nimbo no hace reembolsos en efectivo ni a cuentas de terceros. El cliente recibe un correo cuando el reembolso es emitido.\"}];\n\n// Búsqueda léxica BM25: sin embeddings ni servicios externos. Es el mismo algoritmo de busqueda.py (LangChain).\nconst PARADA = new Set([\"a\", \"al\", \"cliente\", \"como\", \"con\", \"cual\", \"cuales\", \"cuando\", \"cuanto\", \"cuantos\", \"de\", \"del\", \"donde\", \"el\", \"en\", \"es\", \"esa\", \"ese\", \"esta\", \"este\", \"esto\", \"haber\", \"hace\", \"hacer\", \"hay\", \"la\", \"las\", \"le\", \"les\", \"lo\", \"los\", \"mas\", \"me\", \"mi\", \"nimbo\", \"no\", \"o\", \"para\", \"pedido\", \"pedidos\", \"por\", \"producto\", \"productos\", \"puede\", \"pueden\", \"puedo\", \"que\", \"quiero\", \"se\", \"ser\", \"si\", \"sin\", \"son\", \"su\", \"sus\", \"te\", \"tienda\", \"tiene\", \"tienen\", \"tu\", \"un\", \"una\", \"unas\", \"unos\", \"y\", \"ya\"]);\nconst SINONIMOS = {\"roto\": [\"danado\"], \"rota\": [\"danado\"], \"rotos\": [\"danado\"], \"rotas\": [\"danado\"], \"quebrado\": [\"danado\"], \"quebrada\": [\"danado\"], \"estropeado\": [\"danado\"], \"defectuoso\": [\"falla\"], \"tarda\": [\"plazo\", \"dias\"], \"demora\": [\"plazo\", \"dias\"], \"demoran\": [\"plazo\", \"dias\"], \"llega\": [\"despacho\"], \"llegar\": [\"despacho\"], \"envio\": [\"despacho\"], \"enviar\": [\"despacho\"], \"plata\": [\"reembolso\"], \"dinero\": [\"reembolso\"], \"reintegro\": [\"reembolso\"], \"arreglar\": [\"garantia\"], \"reparar\": [\"garantia\"], \"reparacion\": [\"garantia\"], \"devuelvo\": [\"devolver\"], \"devuelven\": [\"devolver\"], \"devolvieron\": [\"devolver\"], \"cambiar\": [\"cambio\"], \"talla\": [\"cambio\"], \"color\": [\"cambio\"], \"equivocado\": [\"incorrecto\"], \"equivocada\": [\"incorrecto\"], \"distinto\": [\"incorrecto\"], \"erroneo\": [\"incorrecto\"], \"atrasada\": [\"atrasado\"], \"atraso\": [\"atrasado\"], \"retraso\": [\"atrasado\"], \"retrasado\": [\"atrasado\"]};\nconst K1 = 1.5, B = 0.75, LARGO_RAIZ = 5, K = 3;\n\nconst normalizar = (t) => String(t).toLowerCase().normalize('NFD').replace(/[\\u0300-\\u036f]/g, '');\nconst palabras = (t) => (normalizar(t).match(/[a-z0-9]+/g) || []).filter(p => !PARADA.has(p) && p.length > 1);\nconst raices = (lista) => lista.map(p => p.slice(0, LARGO_RAIZ));\n\nconst docs = POLITICAS.map(p => ({ p, terminos: raices(palabras(`${p.id} ${p.titulo} ${p.titulo} ${p.texto}`)) }));\nconst largoMedio = docs.reduce((s, d) => s + d.terminos.length, 0) / docs.length;\nconst frecuenciaDoc = {};\ndocs.forEach(d => new Set(d.terminos).forEach(t => { frecuenciaDoc[t] = (frecuenciaDoc[t] || 0) + 1; }));\n\nconst base = palabras(query);\nconst consulta = raices(base.concat(...base.map(p => SINONIMOS[p] || [])));\n\nconst resultados = docs.map(d => {\n  let total = 0;\n  new Set(consulta).forEach(t => {\n    const f = d.terminos.filter(x => x === t).length;\n    if (!f) return;\n    const df = frecuenciaDoc[t];\n    const idf = Math.log(1 + (docs.length - df + 0.5) / (df + 0.5));\n    total += idf * f * (K1 + 1) / (f + K1 * (1 - B + B * d.terminos.length / largoMedio));\n  });\n  return { p: d.p, puntaje: Math.round(total * 1e9) / 1e9 };\n}).filter(r => r.puntaje > 0)\n  .sort((a, b) => (b.puntaje - a.puntaje) || (a.p.id < b.p.id ? -1 : 1))\n  .slice(0, K);\n\nif (!resultados.length) return 'Ninguna política coincide con la consulta.';\nreturn resultados.map(r => `${r.p.id} · ${r.p.titulo}\\n${r.p.texto}`).join('\\n\\n');"
+      },
+      "id": "5f748d34-9321-59e2-a9b7-03ea8df21909",
+      "name": "buscar_politicas",
+      "type": "@n8n/n8n-nodes-langchain.toolCode",
+      "typeVersion": 1.3,
+      "position": [
+        860,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "description": "Consulta un pedido de Tienda Nimbo por su número (entero de 4 dígitos, por ejemplo 1007). Devuelve estado, producto, fechas de compra y entrega y días transcurridos desde la entrega. Úsala cuando la pregunta mencione un número de pedido.",
+        "language": "javaScript",
+        "jsCode": "// EDITA AQUÍ · Lógica de la tool consultar_pedido (tabla sintética de pedidos).\n// En un caso real, aquí iría una consulta a tu base de datos o a la API de tu tienda.\nconst FECHA_REFERENCIA = '2026-10-15'; // \"hoy\" fijo, para resultados reproducibles\nconst PEDIDOS = [{\"n_pedido\": 1001, \"fecha_compra\": \"2026-09-01\", \"fecha_entrega\": \"2026-09-04\", \"estado\": \"entregado\", \"producto\": \"Polerón algodón orgánico\", \"categoria\": \"vestuario\", \"region\": \"Metropolitana\", \"monto_clp\": 24990}, {\"n_pedido\": 1002, \"fecha_compra\": \"2026-09-03\", \"fecha_entrega\": \"2026-09-10\", \"estado\": \"entregado\", \"producto\": \"Mochila urbana 25L\", \"categoria\": \"accesorios\", \"region\": \"Valparaíso\", \"monto_clp\": 39990}, {\"n_pedido\": 1003, \"fecha_compra\": \"2026-10-08\", \"fecha_entrega\": null, \"estado\": \"en_transito\", \"producto\": \"Chaqueta impermeable\", \"categoria\": \"vestuario\", \"region\": \"Los Lagos\", \"monto_clp\": 69990}, {\"n_pedido\": 1004, \"fecha_compra\": \"2026-09-10\", \"fecha_entrega\": \"2026-09-13\", \"estado\": \"entregado\", \"producto\": \"Botella térmica 1L\", \"categoria\": \"hogar\", \"region\": \"Metropolitana\", \"monto_clp\": 14990}, {\"n_pedido\": 1005, \"fecha_compra\": \"2026-09-12\", \"fecha_entrega\": null, \"estado\": \"cancelado\", \"producto\": \"Lámpara de escritorio LED\", \"categoria\": \"hogar\", \"region\": \"Biobío\", \"monto_clp\": 29990}, {\"n_pedido\": 1006, \"fecha_compra\": \"2026-09-15\", \"fecha_entrega\": \"2026-09-22\", \"estado\": \"entregado\", \"producto\": \"Set de sartenes antiadherentes\", \"categoria\": \"hogar\", \"region\": \"Araucanía\", \"monto_clp\": 59990}, {\"n_pedido\": 1007, \"fecha_compra\": \"2026-10-01\", \"fecha_entrega\": \"2026-10-05\", \"estado\": \"entregado\", \"producto\": \"Zapatillas trail Nimbo Pro\", \"categoria\": \"calzado\", \"region\": \"Metropolitana\", \"monto_clp\": 54990}, {\"n_pedido\": 1008, \"fecha_compra\": \"2026-09-18\", \"fecha_entrega\": \"2026-09-24\", \"estado\": \"entregado\", \"producto\": \"Polera personalizada con nombre\", \"categoria\": \"vestuario\", \"region\": \"Maule\", \"monto_clp\": 19990}, {\"n_pedido\": 1009, \"fecha_compra\": \"2026-10-10\", \"fecha_entrega\": null, \"estado\": \"en_preparacion\", \"producto\": \"Audífonos inalámbricos\", \"categoria\": \"tecnologia\", \"region\": \"Metropolitana\", \"monto_clp\": 44990}, {\"n_pedido\": 1010, \"fecha_compra\": \"2026-09-20\", \"fecha_entrega\": null, \"estado\": \"cancelado\", \"producto\": \"Silla ergonómica\", \"categoria\": \"hogar\", \"region\": \"Coquimbo\", \"monto_clp\": 149990}, {\"n_pedido\": 1011, \"fecha_compra\": \"2026-09-22\", \"fecha_entrega\": \"2026-09-30\", \"estado\": \"entregado\", \"producto\": \"Parka de plumas\", \"categoria\": \"vestuario\", \"region\": \"Magallanes\", \"monto_clp\": 89990}, {\"n_pedido\": 1012, \"fecha_compra\": \"2026-09-24\", \"fecha_entrega\": \"2026-09-28\", \"estado\": \"entregado\", \"producto\": \"Cafetera de émbolo 1L\", \"categoria\": \"hogar\", \"region\": \"Metropolitana\", \"monto_clp\": 22990}, {\"n_pedido\": 1013, \"fecha_compra\": \"2026-10-02\", \"fecha_entrega\": \"2026-10-09\", \"estado\": \"entregado\", \"producto\": \"Jeans corte recto\", \"categoria\": \"vestuario\", \"region\": \"Antofagasta\", \"monto_clp\": 34990}, {\"n_pedido\": 1014, \"fecha_compra\": \"2026-10-05\", \"fecha_entrega\": null, \"estado\": \"en_transito\", \"producto\": \"Teclado mecánico\", \"categoria\": \"tecnologia\", \"region\": \"Aysén\", \"monto_clp\": 64990}, {\"n_pedido\": 1015, \"fecha_compra\": \"2026-08-15\", \"fecha_entrega\": \"2026-08-20\", \"estado\": \"entregado\", \"producto\": \"Hervidor eléctrico\", \"categoria\": \"hogar\", \"region\": \"Metropolitana\", \"monto_clp\": 27990}, {\"n_pedido\": 1016, \"fecha_compra\": \"2026-10-06\", \"fecha_entrega\": \"2026-10-09\", \"estado\": \"entregado\", \"producto\": \"Calcetines de lana pack 3\", \"categoria\": \"vestuario\", \"region\": \"Metropolitana\", \"monto_clp\": 12990}, {\"n_pedido\": 1017, \"fecha_compra\": \"2026-09-28\", \"fecha_entrega\": \"2026-10-07\", \"estado\": \"entregado\", \"producto\": \"Carpa 2 personas\", \"categoria\": \"deportes\", \"region\": \"Ñuble\", \"monto_clp\": 99990}, {\"n_pedido\": 1018, \"fecha_compra\": \"2026-10-12\", \"fecha_entrega\": null, \"estado\": \"en_preparacion\", \"producto\": \"Smartwatch deportivo\", \"categoria\": \"tecnologia\", \"region\": \"Valparaíso\", \"monto_clp\": 119990}, {\"n_pedido\": 1019, \"fecha_compra\": \"2026-07-30\", \"fecha_entrega\": \"2026-08-05\", \"estado\": \"entregado\", \"producto\": \"Bicicleta urbana aro 28\", \"categoria\": \"deportes\", \"region\": \"Metropolitana\", \"monto_clp\": 329990}, {\"n_pedido\": 1020, \"fecha_compra\": \"2026-10-09\", \"fecha_entrega\": null, \"estado\": \"en_transito\", \"producto\": \"Termo para mate\", \"categoria\": \"hogar\", \"region\": \"Araucanía\", \"monto_clp\": 17990}];\n\nconst dias = (desde, hasta) => Math.round((Date.parse(hasta) - Date.parse(desde)) / 86400000);\nconst n = Number(query.n_pedido);\nconst pedido = PEDIDOS.find(p => p.n_pedido === n);\nif (!pedido) {\n  return JSON.stringify({ encontrado: false, n_pedido: n, mensaje: 'No existe un pedido con ese número.' });\n}\nconst respuesta = { encontrado: true, ...pedido, dias_desde_compra: dias(pedido.fecha_compra, FECHA_REFERENCIA) };\nif (pedido.fecha_entrega) respuesta.dias_desde_entrega = dias(pedido.fecha_entrega, FECHA_REFERENCIA);\nreturn JSON.stringify(respuesta);",
+        "specifyInputSchema": true,
+        "schemaType": "fromJson",
+        "jsonSchemaExample": "{\n  \"n_pedido\": 1012\n}"
+      },
+      "id": "2270e208-f099-5d40-9202-3cff4a189ef8",
+      "name": "consultar_pedido",
+      "type": "@n8n/n8n-nodes-langchain.toolCode",
+      "typeVersion": 1.3,
+      "position": [
+        1080,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// EDITA AQUÍ · Convierte lo que devolvió el agente en la respuesta que espera la pantalla (contrato v1).\n// Solo hace falta entregar: respuesta, pedido y pasos. Vercel agrega estado, citas y meta, y descarta lo que sobre.\nconst MODELO = 'nvidia/nemotron-3-ultra-550b-a55b:free';   // informativo: debe coincidir con el nodo «Modelo · Nemotron»\n\nconst salida = $input.first().json;\nconst texto = String(salida.output ?? '').trim();\nconst pasosCrudos = Array.isArray(salida.intermediateSteps) ? salida.intermediateSteps : [];\n\nif (!texto || /agent stopped due to max iterations/i.test(texto)) {\n  return [{ json: {\n    http: 502,\n    cuerpo: { ok: false, error: { codigo: 'backend', mensaje: 'El agente no logró terminar su respuesta.',\n                                  detalle: texto || 'el agente no devolvió texto', reintentable: true } },\n  } }];\n}\n\nconst comoTexto = (v) => (typeof v === 'string' ? v : JSON.stringify(v ?? ''));\nconst comoJson = (s) => { try { return JSON.parse(s); } catch { return null; } };\n\n// n8n entrega el resultado de cada tool como un texto con esta forma: [{\"response\":\"...\"}]. Aquí se saca el texto interno.\nconst desenvolver = (obs) => {\n  const externo = comoJson(comoTexto(obs));\n  if (Array.isArray(externo) && externo.length && externo.every(x => x && typeof x === 'object' && 'response' in x)) {\n    return externo.map(x => comoTexto(x.response)).join('\\n');\n  }\n  return comoTexto(obs);\n};\n\nlet pedido = null;\nconst pasos = pasosCrudos.map((paso) => {\n  const herramienta = paso.action?.tool ?? 'herramienta';\n  const entrada = paso.action?.toolInput ?? {};\n  const observacion = desenvolver(paso.observation);\n  let detalle = '';\n  if (herramienta === 'consultar_pedido') {\n    const datos = comoJson(observacion);\n    const n = entrada.n_pedido ?? datos?.n_pedido ?? '?';\n    if (datos?.encontrado) {\n      // a la pantalla solo viaja lo que el contrato necesita\n      pedido = { n_pedido: datos.n_pedido, estado: datos.estado, producto: datos.producto,\n                 fecha_entrega: datos.fecha_entrega ?? null, dias_desde_entrega: datos.dias_desde_entrega ?? null };\n      detalle = `n_pedido = ${n} → ` + (datos.dias_desde_entrega != null ? `${datos.estado} hace ${datos.dias_desde_entrega} días` : datos.estado);\n    } else {\n      detalle = `n_pedido = ${n} → no existe`;\n    }\n  } else if (herramienta === 'buscar_politicas') {\n    const codigos = [...new Set(observacion.match(/POL-\\d\\d/g) ?? [])];\n    detalle = `«${entrada.input ?? entrada.query ?? ''}» → ${codigos.join(', ') || 'sin coincidencias'}`;\n  } else {\n    detalle = observacion.slice(0, 120);\n  }\n  return { tipo: 'herramienta', nombre: herramienta, detalle };\n});\n\nreturn [{ json: {\n  http: 200,\n  cuerpo: { respuesta: texto, pedido, pasos, modelo: MODELO, llamadas_modelo: null },\n} }];"
+      },
+      "id": "e5e773c9-bc33-5f44-a661-45ded691288f",
+      "name": "Armar respuesta",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1060,
+        -60
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// El agente falló (modelo sin cuota, clave rechazada, tiempo agotado...). En vez de dejar que n8n responda con un\n// error genérico, se traduce a la forma del contrato v1 para que la pantalla explique qué pasó.\nconst bruto = $input.first().json;\nconst original = String(bruto.error?.message ?? bruto.error ?? bruto.message ?? 'error desconocido');\nconst detalle = original.replace(/sk-[A-Za-z0-9_-]+/g, '[clave]').replace(/\\s+/g, ' ').slice(0, 160);  // nunca reenvíes claves\n\nlet codigo = 'backend', mensaje = 'El agente falló al llamar al modelo.', reintentable = false;\nif (/429|rate.?limit|quota|free-models|too many requests/i.test(original)) {\n  codigo = 'cuota_ia'; mensaje = 'El modelo gratuito alcanzó su límite de uso.'; reintentable = true;\n} else if (/timed? ?out|timeout|took too long|ETIMEDOUT|ECONNRESET|ECONNABORTED/i.test(original)) {\n  codigo = 'timeout'; mensaje = 'El modelo tardó demasiado en responder.'; reintentable = true;\n} else if (/max(imum)? iterations/i.test(original)) {\n  mensaje = 'El agente no logró terminar su respuesta con las herramientas disponibles.'; reintentable = true;\n} else if (/401|403|unauthorized|forbidden|no auth|invalid api key|authentication|authorization failed|check your credentials/i.test(original)) {\n  mensaje = 'n8n no pudo autenticarse con OpenRouter: revisa la credencial del modelo.';\n} else if (/5\\d\\d|provider returned error|overloaded|unavailable|bad gateway|failed to handle|not able to process/i.test(original)) {\n  mensaje = 'El proveedor del modelo no está disponible en este momento.'; reintentable = true;\n}\nreturn [{ json: { http: 502, cuerpo: { ok: false, error: { codigo, mensaje, detalle, reintentable } } } }];"
+      },
+      "id": "60d985c0-a6e4-5df2-9731-010d14719142",
+      "name": "Armar error",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1060,
+        140
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json.cuerpo }}",
+        "options": {
+          "responseCode": "={{ $json.http }}",
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Cache-Control",
+                "value": "no-store"
+              }
+            ]
+          }
+        }
+      },
+      "id": "de36ca7b-1605-5de1-8de1-4a9eea43f88a",
+      "name": "Responder al webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        1360,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "content": "### EDITA AQUÍ\nLa **ruta** del webhook (*Path*) y el encabezado que lo protege (credencial Header Auth).",
+        "height": 150,
+        "width": 280,
+        "color": 3
+      },
+      "id": "efac72b2-bb02-5bbf-b6d5-5fe1470dd106",
+      "name": "Nota · Webhook",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -100,
+        -200
+      ]
+    },
+    {
+      "parameters": {
+        "content": "### EDITA AQUÍ\nPrompt del agente: abre el nodo → *Options → System Message*.",
+        "height": 100,
+        "width": 260,
+        "color": 3
+      },
+      "id": "820c1be3-d187-5a02-9eea-58a95745ad38",
+      "name": "Nota · Prompt",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        700,
+        -90
+      ]
+    },
+    {
+      "parameters": {
+        "content": "### EDITA AQUÍ\nDescripción y datos de cada tool. **buscar_politicas**: tus documentos. **consultar_pedido**: tu tabla de pedidos.",
+        "height": 150,
+        "width": 380,
+        "color": 3
+      },
+      "id": "c89689a9-a7be-5f23-8354-12bc053a549d",
+      "name": "Nota · Tools",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        840,
+        470
+      ]
+    },
+    {
+      "parameters": {
+        "content": "### EDITA AQUÍ\nQué le entregas a la pantalla: *respuesta*, *pedido* y *pasos*.",
+        "height": 150,
+        "width": 260,
+        "color": 3
+      },
+      "id": "94a1f790-e3b6-5f40-8d66-f35189bf222f",
+      "name": "Nota · Respuesta",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1020,
+        -260
+      ]
+    },
+    {
+      "parameters": {
+        "content": "### Un solo final\nLas tres salidas (éxito, mensaje inválido, error del agente) terminan en **este** nodo. Cada una trae su `http` (código) y su `cuerpo` (JSON).",
+        "height": 130,
+        "width": 280,
+        "color": 4
+      },
+      "id": "d5e03523-d8e0-56ef-b355-639f14d720a5",
+      "name": "Nota · Un solo final",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1300,
+        150
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook · Mesa de ayuda": {
+      "main": [
+        [
+          {
+            "node": "Preparar mensaje",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar mensaje": {
+      "main": [
+        [
+          {
+            "node": "¿Mensaje válido?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Mensaje válido?": {
+      "main": [
+        [
+          {
+            "node": "Agente",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Mensaje inválido",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Modelo · Nemotron": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Agente",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "buscar_politicas": {
+      "ai_tool": [
+        [
+          {
+            "node": "Agente",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "consultar_pedido": {
+      "ai_tool": [
+        [
+          {
+            "node": "Agente",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Agente": {
+      "main": [
+        [
+          {
+            "node": "Armar respuesta",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Armar error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Armar respuesta": {
+      "main": [
+        [
+          {
+            "node": "Responder al webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Armar error": {
+      "main": [
+        [
+          {
+            "node": "Responder al webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mensaje inválido": {
+      "main": [
+        [
+          {
+            "node": "Responder al webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1",
+    "executionTimeout": 100
+  },
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "tags": []
+}
