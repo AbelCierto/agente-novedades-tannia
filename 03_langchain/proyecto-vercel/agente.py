@@ -1,19 +1,19 @@
-"""Agente de la Mesa de ayuda Nimbo con LangChain (ruta C del curso).
+"""Agente de contenido de Mega Ofertas Tannia con LangChain (ruta C del curso).
 
 Un modelo de lenguaje con dos herramientas. En cada consulta el MODELO decide qué herramienta usar y cuándo
 responder; el código solo define las herramientas, pone límites y traduce el resultado al contrato de la pantalla.
 
-    buscar_politicas(consulta)   busca en las políticas de la tienda (búsqueda por palabras: busqueda.py)
-    consultar_pedido(n_pedido)   entrega estado y fechas de un pedido (la tabla PEDIDOS de datos.py)
+    buscar_perfil_marca(consulta)              perfil de marca y reglas por red social (búsqueda por palabras: busqueda.py)
+    consultar_catalogo(categoria, disponibles) prendas del catálogo con precio_oferta y campos_faltantes (PRODUCTOS de datos.py)
 
-app.py llama a ejecutar_agente(mensaje) y recibe un diccionario con la respuesta, el pedido consultado y los pasos
-que siguió el agente. Validar el mensaje, limitar visitas y dar forma final a la respuesta lo hace el proxy.
+app.py llama a ejecutar_agente(mensaje) y recibe un diccionario con la propuesta de contenido y los pasos que siguió
+el agente. Validar el mensaje, limitar visitas y dar forma final a la respuesta lo hace el proxy.
 """
 from __future__ import annotations
 
 import json
 import os
-from datetime import date
+import re
 from typing import Any
 
 import openai
@@ -27,37 +27,65 @@ from langgraph.errors import GraphRecursionError
 
 from busqueda import buscar
 from contrato import ErrorContrato
-from datos import DESC_BUSCAR_POLITICAS, DESC_CONSULTAR_PEDIDO, FECHA_REFERENCIA, MODEL_ID, PEDIDOS, PROMPT_AGENTE
+from datos import DESC_BUSCAR_PERFIL, DESC_CONSULTAR_CATALOGO, MODEL_ID, PRODUCTOS, PROMPT_AGENTE
 
 # ----------------------------------------------------------------------------- EDITA AQUÍ
 OPENROUTER_URL = os.getenv("OPENROUTER_BASE_URL", "").strip() or "https://openrouter.ai/api/v1"   # otro proveedor compatible con OpenAI, si quieres
 MODELO = os.getenv("MODEL_ID", "").strip() or MODEL_ID   # puedes cambiar de modelo desde las variables de Vercel
-MAX_LLAMADAS_MODELO = 6    # veces que el agente puede llamar al modelo por consulta (la cuota gratuita es pequeña)
-MAX_LLAMADAS_HERRAMIENTAS = 4
+MAX_LLAMADAS_MODELO = 10   # veces que el agente puede llamar al modelo por consulta (generar 3 redes usa ~8)
+MAX_LLAMADAS_HERRAMIENTAS = 6
 ESPERA_MODELO_S = 60       # cuánto espera cada llamada al modelo antes de rendirse
 # -----------------------------------------------------------------------------------------
 
 
 # ----------------------------------------------------------------------------- herramientas
-@tool("buscar_politicas", description=DESC_BUSCAR_POLITICAS)
-def buscar_politicas(consulta: str) -> str:
+@tool("buscar_perfil_marca", description=DESC_BUSCAR_PERFIL)
+def buscar_perfil_marca(consulta: str) -> str:
     hallazgos = buscar(consulta)
     if not hallazgos:
-        return "Ninguna política coincide con la consulta."
+        return "Ninguna regla de marca coincide con la consulta."
     return "\n\n".join(f"{p['id']} · {p['titulo']}\n{p['texto']}" for p in hallazgos)
 
 
-@tool("consultar_pedido", description=DESC_CONSULTAR_PEDIDO)
-def consultar_pedido(n_pedido: int) -> str:
+def _campos_faltantes(p: dict) -> list[str]:
+    faltan = []
+    if p.get("precio_soles") is None:
+        faltan.append("precio")
+    if not p.get("imagen_autorizada"):
+        faltan.append("imagen")
+    if not p.get("stock"):
+        faltan.append("stock")
+    return faltan
+
+
+def _precio_oferta(p: dict) -> float | None:
+    """Calcula en código el precio con descuento: el modelo no debe calcular precios (regla PM-05)."""
+    precio = p.get("precio_soles")
+    promo = p.get("promocion") or ""
+    if precio is None:
+        return None
+    m = re.match(r"\s*(\d{1,3})\s*%", promo)
+    if not m:
+        return None
+    descuento = int(m.group(1))
+    if not 0 < descuento < 100:
+        return None
+    return round(precio * (100 - descuento) / 100, 2)
+
+
+@tool("consultar_catalogo", description=DESC_CONSULTAR_CATALOGO)
+def consultar_catalogo(categoria: str = "", solo_disponibles: bool = True) -> str:
     # En un caso real, aquí iría una consulta a tu base de datos o a la API de tu tienda.
-    pedido = next((p for p in PEDIDOS if p["n_pedido"] == n_pedido), None)
-    if pedido is None:
-        return json.dumps({"encontrado": False, "n_pedido": n_pedido, "mensaje": "No existe un pedido con ese número."}, ensure_ascii=False)
-    hoy = date.fromisoformat(FECHA_REFERENCIA)
-    datos = {"encontrado": True, **pedido, "dias_desde_compra": (hoy - date.fromisoformat(pedido["fecha_compra"])).days}
-    if pedido["fecha_entrega"]:
-        datos["dias_desde_entrega"] = (hoy - date.fromisoformat(pedido["fecha_entrega"])).days
-    return json.dumps(datos, ensure_ascii=False)
+    resultado = []
+    for p in PRODUCTOS:
+        if categoria and p["categoria"].lower() != categoria.strip().lower():
+            continue
+        if solo_disponibles and not p.get("stock"):
+            continue
+        resultado.append({**p, "precio_oferta": _precio_oferta(p), "campos_faltantes": _campos_faltantes(p)})
+    if not resultado:
+        return json.dumps({"encontrado": False, "categoria": categoria, "mensaje": "No hay prendas que coincidan."}, ensure_ascii=False)
+    return json.dumps({"encontrado": True, "prendas": resultado}, ensure_ascii=False)
 
 
 # ----------------------------------------------------------------------------- el agente
@@ -78,7 +106,7 @@ def obtener_agente():
         )
         _agente = create_agent(
             model=modelo,
-            tools=[buscar_politicas, consultar_pedido],
+            tools=[buscar_perfil_marca, consultar_catalogo],
             system_prompt=PROMPT_AGENTE,
             middleware=[
                 # Los límites protegen tu cuota: sin ellos, un modelo despistado puede llamar herramientas en bucle.
@@ -110,29 +138,25 @@ def _texto(contenido: Any) -> str:
 
 
 def armar_salida(mensajes: list) -> dict[str, Any]:
-    """Convierte los mensajes de la ejecución en {respuesta, pedido, pasos, modelo, llamadas_modelo}."""
+    """Convierte los mensajes de la ejecución en {respuesta, pasos, modelo, llamadas_modelo}."""
     ultimo_usuario = max(i for i, m in enumerate(mensajes) if m.type == "human")
     nuevos = mensajes[ultimo_usuario + 1:]
     resultados = {m.tool_call_id: m for m in nuevos if isinstance(m, ToolMessage)}
     respuestas_ia = [m for m in nuevos if isinstance(m, AIMessage)]
 
-    pedido, pasos = None, []
+    pasos = []
     for m in respuestas_ia:
         for llamada in m.tool_calls:
             observacion = _texto(resultados[llamada["id"]].content) if llamada["id"] in resultados else ""
             nombre, args = llamada["name"], llamada["args"]
-            if nombre == "consultar_pedido":
+            if nombre == "consultar_catalogo":
                 datos = _json_o_none(observacion)
-                n = args.get("n_pedido", "?")
-                if isinstance(datos, dict) and datos.get("encontrado"):
-                    # a la pantalla solo viaja lo que el contrato necesita
-                    pedido = {k: datos.get(k) for k in ("n_pedido", "estado", "producto", "fecha_entrega", "dias_desde_entrega")}
-                    dias = datos.get("dias_desde_entrega")
-                    detalle = f"n_pedido = {n} → " + (f"{datos['estado']} hace {dias} días" if dias is not None else datos["estado"])
-                else:
-                    detalle = f"n_pedido = {n} → no existe"
-            elif nombre == "buscar_politicas":
-                codigos = sorted(set(_codigos_politica(observacion)))
+                prendas = datos.get("prendas", []) if isinstance(datos, dict) else []
+                cat = args.get("categoria") or "todas"
+                nombres = ", ".join(str(p.get("nombre", "?")) for p in prendas[:3])
+                detalle = f"categoria = {cat} → {len(prendas)} prenda(s)" + (f": {nombres}" if nombres else "")
+            elif nombre == "buscar_perfil_marca":
+                codigos = sorted(set(_codigos_marca(observacion)))
                 detalle = f"«{args.get('consulta', '')}» → {', '.join(codigos) or 'sin coincidencias'}"
             else:
                 detalle = observacion[:120]
@@ -142,7 +166,7 @@ def armar_salida(mensajes: list) -> dict[str, Any]:
     texto = _texto(final.content) if final else ""
     if not texto:
         raise ErrorContrato("backend", "El agente no logró terminar su respuesta.", 502, "el modelo no devolvió texto final", True)
-    return {"respuesta": texto, "pedido": pedido, "pasos": pasos, "modelo": MODELO, "llamadas_modelo": len(respuestas_ia)}
+    return {"respuesta": texto, "pedido": None, "pasos": pasos, "modelo": MODELO, "llamadas_modelo": len(respuestas_ia)}
 
 
 def _json_o_none(texto: str) -> Any:
@@ -152,9 +176,8 @@ def _json_o_none(texto: str) -> Any:
         return None
 
 
-def _codigos_politica(texto: str) -> list[str]:
-    import re
-    return re.findall(r"POL-\d\d", texto)
+def _codigos_marca(texto: str) -> list[str]:
+    return re.findall(r"PM-\d\d", texto)
 
 
 def traducir_error(e: Exception) -> ErrorContrato:

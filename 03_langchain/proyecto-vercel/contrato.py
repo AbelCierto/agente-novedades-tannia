@@ -28,10 +28,10 @@ RUTAS = ("A", "B", "R", "C", "D")
 
 # Las frases de abstención del PoC se vuelven estados que el código puede leer.
 FRASE_FUERA = "Fuera de alcance"
-FRASE_SIN_INFO = "No tengo esa información"
+FRASE_SIN_INFO = "pendiente de información"
 FRASE_SIN_PEDIDO = "No encontré el pedido"
 
-_CODIGO_POLITICA = re.compile(r"\bPOL-\d{2}\b")
+_CODIGO_POLITICA = re.compile(r"\bPM-\d{2}\b")
 _CONTROL = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]")
 
 
@@ -143,7 +143,7 @@ def _citas(crudo: Any, respuesta: str) -> list[str]:
     vistas: list[str] = []
     for c in candidatas:
         c = c.strip().upper()
-        if re.fullmatch(r"POL-\d{2}", c) and c not in vistas:
+        if re.fullmatch(r"PM-\d{2}", c) and c not in vistas:
             vistas.append(c)
     return vistas[:6]
 

@@ -1,128 +1,115 @@
-"""Datos del caso de referencia (Tienda Nimbo, ficticia). EDITA AQUÍ para tu caso.
+"""Datos del caso Mega Ofertas Tannia (equipo Hypecloset). EDITA AQUÍ para tu caso.
 
-Mismos datos y mismo prompt que el template LC-C del Kit PoC, para que PoC y MVP digan lo mismo.
+Mismos datos y mismo prompt que el PoC LC-C (notebook data-previo/LC_C_agente.ipynb), para que
+PoC y MVP digan lo mismo. El agente genera contenido para Instagram, Facebook y TikTok a partir del
+catálogo y del perfil de marca; nunca inventa datos y toda pieza queda sujeta a aprobación humana.
 """
 
-FECHA_REFERENCIA = "2026-10-15"  # «hoy» fijo, para que los días desde la entrega no cambien
 MODEL_ID = "nvidia/nemotron-3-ultra-550b-a55b:free"  # modelo de OpenRouter (variable de entorno MODEL_ID para cambiarlo sin tocar el código)
 
-# Políticas que consulta la herramienta buscar_politicas. Reemplázalas por tus documentos ya limpios.
+# Perfil de marca y reglas de contenido que consulta la herramienta buscar_perfil_marca (RAG).
+# Mantiene la variable POLITICAS para reutilizar la búsqueda léxica de busqueda.py.
 POLITICAS = [
     {
-        "id": "POL-01",
-        "titulo": "Devoluciones",
+        "id": "PM-01",
+        "titulo": "Identidad de marca",
         "texto": (
-            "Puedes devolver un producto dentro de 30 días corridos desde la fecha de entrega, "
-            "siempre que esté sin uso, con sus etiquetas y con su boleta o número de pedido. No se "
-            "aceptan devoluciones de productos personalizados, ropa interior ni alimentos. La "
-            "devolución se solicita en la mesa de ayuda indicando el número de pedido. El envío de "
-            "vuelta es gratuito si el producto llegó con falla o equivocado; en los demás casos lo "
-            "paga el cliente."
+            "Mega Ofertas Tannia es una tienda de ropa con precios accesibles y ofertas frecuentes para "
+            "toda la familia. El tono es cercano, entusiasta y directo, tratando de tú y destacando siempre "
+            "el ahorro. Evita promesas exageradas, precios inventados y lenguaje ofensivo. Solo se promociona "
+            "ropa disponible en el catálogo y toda pieza queda sujeta a la aprobación del encargado antes de publicarse."
         ),
     },
     {
-        "id": "POL-02",
-        "titulo": "Cambios de talla o color",
+        "id": "PM-02",
+        "titulo": "Reglas para Instagram",
         "texto": (
-            "Los cambios de talla o color se aceptan dentro de 15 días corridos desde la entrega, "
-            "sujetos a stock. El producto debe estar sin uso y con etiquetas. Si no hay stock del "
-            "producto solicitado, se ofrece una devolución según la política de devoluciones. Cada "
-            "pedido admite un solo cambio."
+            "En Instagram el caption es breve (máximo 3 líneas) y termina con una llamada a la acción clara, "
+            "como 'Toca el enlace de la bio'. Incluye entre 5 y 8 hashtags en español relacionados con moda y "
+            "la prenda. Menciona el precio solo si está confirmado en el catálogo. El formato preferido es carrusel o reel."
         ),
     },
     {
-        "id": "POL-03",
-        "titulo": "Despachos",
+        "id": "PM-03",
+        "titulo": "Reglas para Facebook",
         "texto": (
-            "Tienda Nimbo despacha solo dentro de Chile. Plazos de entrega: Región Metropolitana, 2 a"
-            " 4 días hábiles; otras regiones, 4 a 8 días hábiles; zonas extremas (Arica y Parinacota,"
-            " Aysén y Magallanes), hasta 12 días hábiles. El despacho es gratuito en compras sobre "
-            "$40.000; bajo ese monto cuesta $3.990. Un pedido se considera atrasado si supera el "
-            "plazo máximo de su zona."
+            "En Facebook el texto es informativo y algo más extenso: describe la prenda, sus tallas y colores "
+            "disponibles y el precio confirmado. Cierra con una invitación a escribir por mensaje directo para "
+            "comprar. Usa pocos hashtags (máximo 3). No publiques si falta el precio o la fotografía autorizada."
         ),
     },
     {
-        "id": "POL-04",
-        "titulo": "Productos dañados o incorrectos",
+        "id": "PM-04",
+        "titulo": "Reglas para TikTok",
         "texto": (
-            "Si un producto llega dañado o no corresponde a lo comprado, debes reportarlo dentro de "
-            "48 horas desde la entrega, adjuntando fotos del producto y del embalaje. Si el reporte "
-            "llega a tiempo, Tienda Nimbo repone el producto sin costo o reembolsa el total, a "
-            "elección del cliente. Los reportes fuera de plazo se evalúan como garantía."
+            "En TikTok se entrega un guion breve de 15 a 20 segundos con tres partes: gancho inicial (1 frase "
+            "que enganche), descripción rápida de la prenda y llamada a la acción final. El tono es dinámico y "
+            "juvenil. Sugiere 3 a 5 hashtags de tendencia."
         ),
     },
     {
-        "id": "POL-05",
-        "titulo": "Garantía",
+        "id": "PM-05",
+        "titulo": "Reglas comerciales",
         "texto": (
-            "Todos los productos tienen 6 meses de garantía por fallas de fabricación, contados desde"
-            " la entrega. La garantía no cubre daños por mal uso, golpes ni desgaste normal. Para "
-            "usarla se requiere el número de pedido y una descripción de la falla; el producto pasa "
-            "por una revisión técnica de hasta 10 días hábiles."
+            "Nunca inventes precio, stock, tallas, colores ni características de una prenda: usa solo lo que "
+            "entregue el catálogo. Si a una prenda le falta precio confirmado, fotografía autorizada o stock, no "
+            "se genera contenido publicable: queda en estado 'pendiente de información' indicando qué falta. El "
+            "agente no fija precios ni publica: solo propone contenido para aprobación humana."
         ),
     },
     {
-        "id": "POL-06",
-        "titulo": "Reembolsos",
+        "id": "PM-06",
+        "titulo": "Fuera de alcance",
         "texto": (
-            "Los reembolsos se hacen al mismo medio de pago de la compra, entre 5 y 10 días hábiles "
-            "después de que el producto devuelto llega a bodega y es aprobado. Tienda Nimbo no hace "
-            "reembolsos en efectivo ni a cuentas de terceros. El cliente recibe un correo cuando el "
-            "reembolso es emitido."
+            "Mega Ofertas Tannia usa este asistente solo para generar contenido orgánico (no pagado). El agente "
+            "no administra campañas de anuncios pagados, no asigna presupuestos publicitarios, no elige audiencias, "
+            "no responde comentarios ni mensajes y no publica ni programa nada sin la aprobación de una persona autorizada."
         ),
     },
 ]
 
-# Tabla que consulta la herramienta consultar_pedido. En un caso real sería tu base de datos o la API de tu tienda.
-PEDIDOS = [
-    {"n_pedido": 1001, "fecha_compra": "2026-09-01", "fecha_entrega": "2026-09-04", "estado": "entregado", "producto": "Polerón algodón orgánico", "categoria": "vestuario", "region": "Metropolitana", "monto_clp": 24990},
-    {"n_pedido": 1002, "fecha_compra": "2026-09-03", "fecha_entrega": "2026-09-10", "estado": "entregado", "producto": "Mochila urbana 25L", "categoria": "accesorios", "region": "Valparaíso", "monto_clp": 39990},
-    {"n_pedido": 1003, "fecha_compra": "2026-10-08", "fecha_entrega": None, "estado": "en_transito", "producto": "Chaqueta impermeable", "categoria": "vestuario", "region": "Los Lagos", "monto_clp": 69990},
-    {"n_pedido": 1004, "fecha_compra": "2026-09-10", "fecha_entrega": "2026-09-13", "estado": "entregado", "producto": "Botella térmica 1L", "categoria": "hogar", "region": "Metropolitana", "monto_clp": 14990},
-    {"n_pedido": 1005, "fecha_compra": "2026-09-12", "fecha_entrega": None, "estado": "cancelado", "producto": "Lámpara de escritorio LED", "categoria": "hogar", "region": "Biobío", "monto_clp": 29990},
-    {"n_pedido": 1006, "fecha_compra": "2026-09-15", "fecha_entrega": "2026-09-22", "estado": "entregado", "producto": "Set de sartenes antiadherentes", "categoria": "hogar", "region": "Araucanía", "monto_clp": 59990},
-    {"n_pedido": 1007, "fecha_compra": "2026-10-01", "fecha_entrega": "2026-10-05", "estado": "entregado", "producto": "Zapatillas trail Nimbo Pro", "categoria": "calzado", "region": "Metropolitana", "monto_clp": 54990},
-    {"n_pedido": 1008, "fecha_compra": "2026-09-18", "fecha_entrega": "2026-09-24", "estado": "entregado", "producto": "Polera personalizada con nombre", "categoria": "vestuario", "region": "Maule", "monto_clp": 19990},
-    {"n_pedido": 1009, "fecha_compra": "2026-10-10", "fecha_entrega": None, "estado": "en_preparacion", "producto": "Audífonos inalámbricos", "categoria": "tecnologia", "region": "Metropolitana", "monto_clp": 44990},
-    {"n_pedido": 1010, "fecha_compra": "2026-09-20", "fecha_entrega": None, "estado": "cancelado", "producto": "Silla ergonómica", "categoria": "hogar", "region": "Coquimbo", "monto_clp": 149990},
-    {"n_pedido": 1011, "fecha_compra": "2026-09-22", "fecha_entrega": "2026-09-30", "estado": "entregado", "producto": "Parka de plumas", "categoria": "vestuario", "region": "Magallanes", "monto_clp": 89990},
-    {"n_pedido": 1012, "fecha_compra": "2026-09-24", "fecha_entrega": "2026-09-28", "estado": "entregado", "producto": "Cafetera de émbolo 1L", "categoria": "hogar", "region": "Metropolitana", "monto_clp": 22990},
-    {"n_pedido": 1013, "fecha_compra": "2026-10-02", "fecha_entrega": "2026-10-09", "estado": "entregado", "producto": "Jeans corte recto", "categoria": "vestuario", "region": "Antofagasta", "monto_clp": 34990},
-    {"n_pedido": 1014, "fecha_compra": "2026-10-05", "fecha_entrega": None, "estado": "en_transito", "producto": "Teclado mecánico", "categoria": "tecnologia", "region": "Aysén", "monto_clp": 64990},
-    {"n_pedido": 1015, "fecha_compra": "2026-08-15", "fecha_entrega": "2026-08-20", "estado": "entregado", "producto": "Hervidor eléctrico", "categoria": "hogar", "region": "Metropolitana", "monto_clp": 27990},
-    {"n_pedido": 1016, "fecha_compra": "2026-10-06", "fecha_entrega": "2026-10-09", "estado": "entregado", "producto": "Calcetines de lana pack 3", "categoria": "vestuario", "region": "Metropolitana", "monto_clp": 12990},
-    {"n_pedido": 1017, "fecha_compra": "2026-09-28", "fecha_entrega": "2026-10-07", "estado": "entregado", "producto": "Carpa 2 personas", "categoria": "deportes", "region": "Ñuble", "monto_clp": 99990},
-    {"n_pedido": 1018, "fecha_compra": "2026-10-12", "fecha_entrega": None, "estado": "en_preparacion", "producto": "Smartwatch deportivo", "categoria": "tecnologia", "region": "Valparaíso", "monto_clp": 119990},
-    {"n_pedido": 1019, "fecha_compra": "2026-07-30", "fecha_entrega": "2026-08-05", "estado": "entregado", "producto": "Bicicleta urbana aro 28", "categoria": "deportes", "region": "Metropolitana", "monto_clp": 329990},
-    {"n_pedido": 1020, "fecha_compra": "2026-10-09", "fecha_entrega": None, "estado": "en_transito", "producto": "Termo para mate", "categoria": "hogar", "region": "Araucanía", "monto_clp": 17990},
+# Catálogo sintético que consulta la herramienta consultar_catalogo. En un caso real sería tu base de datos
+# o la API de tu tienda. precio_soles None, imagen_autorizada False o stock 0 marcan una prenda incompleta.
+PRODUCTOS = [
+    {"id": "SKU-101", "nombre": "Casaca Oversize Denim", "categoria": "casacas", "precio_soles": 129.90, "stock": 18, "tallas": ["S", "M", "L"], "colores": ["azul", "negro"], "imagen_autorizada": True, "promocion": "20% hasta agotar stock"},
+    {"id": "SKU-102", "nombre": "Polera Básica Algodón", "categoria": "poleras", "precio_soles": 39.90, "stock": 40, "tallas": ["S", "M", "L", "XL"], "colores": ["blanco", "negro", "gris"], "imagen_autorizada": True, "promocion": None},
+    {"id": "SKU-103", "nombre": "Jeans Corte Recto", "categoria": "pantalones", "precio_soles": 89.90, "stock": 12, "tallas": ["28", "30", "32", "34"], "colores": ["azul"], "imagen_autorizada": True, "promocion": None},
+    {"id": "SKU-104", "nombre": "Hoodie Urban Fit", "categoria": "casacas", "precio_soles": 109.90, "stock": 0, "tallas": ["M", "L"], "colores": ["negro", "verde"], "imagen_autorizada": True, "promocion": None},
+    {"id": "SKU-105", "nombre": "Falda Plisada Midi", "categoria": "faldas", "precio_soles": 69.90, "stock": 15, "tallas": ["S", "M", "L"], "colores": ["beige", "negro"], "imagen_autorizada": True, "promocion": "Lanzamiento de temporada"},
+    {"id": "SKU-106", "nombre": "Gorra Snapback", "categoria": "accesorios", "precio_soles": 29.90, "stock": 25, "tallas": ["única"], "colores": ["negro", "blanco"], "imagen_autorizada": True, "promocion": None},
+    {"id": "SKU-107", "nombre": "Casaca Bomber Satén", "categoria": "casacas", "precio_soles": 149.90, "stock": 8, "tallas": ["S", "M", "L"], "colores": ["vino", "negro"], "imagen_autorizada": True, "promocion": None},
+    {"id": "SKU-108", "nombre": "Blusa Lino Verano", "categoria": "blusas", "precio_soles": None, "stock": 10, "tallas": ["S", "M"], "colores": ["blanco", "beige"], "imagen_autorizada": False, "promocion": None},
+    {"id": "SKU-109", "nombre": "Pantalón Cargo", "categoria": "pantalones", "precio_soles": 99.90, "stock": 14, "tallas": ["30", "32", "34"], "colores": ["verde", "beige"], "imagen_autorizada": True, "promocion": None},
+    {"id": "SKU-110", "nombre": "Vestido Punto Canalé", "categoria": "vestidos", "precio_soles": 119.90, "stock": 6, "tallas": ["S", "M", "L"], "colores": ["camel", "negro"], "imagen_autorizada": True, "promocion": None},
 ]
 
 # La descripción de cada herramienta es su interfaz: el modelo decide cuándo usarla leyendo este texto.
-DESC_BUSCAR_POLITICAS = (
-    "Busca en las políticas oficiales de Tienda Nimbo (devoluciones, cambios, despachos, productos "
-    "dañados, garantía y reembolsos). Úsala cuando la respuesta dependa de una regla o plazo de la "
-    "tienda. Recibe una consulta en texto y devuelve los fragmentos más relevantes con su código."
+DESC_BUSCAR_PERFIL = (
+    "Busca en el perfil de marca y las reglas de contenido de Mega Ofertas Tannia (identidad, tono y reglas por "
+    "red social: Instagram, Facebook y TikTok). Úsala para adaptar el texto y conocer qué está fuera de alcance. "
+    "Recibe una consulta en texto y devuelve los fragmentos más relevantes con su código (PM-01, PM-02, ...)."
 )
 
-DESC_CONSULTAR_PEDIDO = (
-    "Consulta un pedido de Tienda Nimbo por su número (entero de 4 dígitos, por ejemplo 1007). "
-    "Devuelve estado, producto, fechas de compra y entrega y días transcurridos desde la entrega. "
-    "Úsala cuando la pregunta mencione un número de pedido."
+DESC_CONSULTAR_CATALOGO = (
+    "Consulta el catálogo de Mega Ofertas Tannia para elegir qué prendas promocionar. Parámetros: 'categoria' "
+    "filtra por categoría exacta (por ejemplo \"casacas\", \"poleras\", \"blusas\"); vacío = todas. 'solo_disponibles' "
+    "en True devuelve solo prendas con stock mayor a 0. Para cada prenda devuelve id, nombre, categoría, precio, "
+    "precio_oferta (calculado por código cuando hay descuento), stock, tallas, colores, promoción y 'campos_faltantes' "
+    "(precio, imagen o stock ausentes). Úsala siempre antes de proponer contenido. Nunca inventes productos, precios ni stock."
 )
 
 # Instrucciones del agente (prompt del sistema).
 PROMPT_AGENTE = """\
-Eres el asistente de la mesa de ayuda de Tienda Nimbo (tienda online chilena, ficticia). Hoy es 2026-10-15.
+Eres el asistente de contenido publicitario de Mega Ofertas Tannia, una tienda de ropa con precios accesibles que vende por Instagram, Facebook y TikTok.
 
 Herramientas:
-- buscar_politicas: busca en las políticas oficiales (devoluciones, cambios, despachos, productos dañados, garantía, reembolsos).
-- consultar_pedido: entrega estado y fechas de un pedido a partir de su número.
+- consultar_catalogo: lista prendas del catálogo con su precio, precio_oferta (ya calculado por código cuando hay descuento), stock, tallas, colores, promoción y una lista 'campos_faltantes'. Úsala SIEMPRE para elegir qué promocionar; nunca inventes productos.
+- buscar_perfil_marca: devuelve el tono de la marca y las reglas de contenido por red social. Úsala para adaptar el texto a cada red.
 
 Reglas:
-- Si la pregunta menciona un número de pedido, usa consultar_pedido. Si la respuesta depende de una regla de la tienda, usa buscar_politicas. Si necesitas ambas cosas, usa ambas.
-- Nunca inventes datos de pedidos ni plazos: usa solo lo que entreguen las herramientas.
-- Si consultar_pedido no encuentra el pedido, dilo con la frase "No encontré el pedido" y pide verificar el número.
-- Si la pregunta no tiene relación con Tienda Nimbo, no uses herramientas y responde exactamente: "Fuera de alcance: solo respondo consultas sobre Tienda Nimbo."
-- Responde en máximo 4 frases y cita entre corchetes la política usada, por ejemplo [POL-01].
-- Escribe en texto plano, sin Markdown ni listas, y dirígete al cliente de tú.
+- Usa solo prendas que entregue consultar_catalogo. Nunca inventes precios, stock, tallas ni colores, y nunca calcules tú el precio con descuento: usa el campo 'precio_oferta' que entrega la herramienta.
+- Antes de generar contenido revisa 'campos_faltantes'. Si a la prenda le falta precio, imagen o stock, NO generes la pieza: responde con el estado "pendiente de información" e indica exactamente qué campos faltan y para qué prenda.
+- Para una prenda válida, genera una propuesta por cada red pedida: Instagram (caption + hashtags + llamada a la acción), Facebook (texto informativo con precio) y TikTok (guion breve). Cita entre corchetes la regla de marca usada, por ejemplo [PM-02].
+- No publicas ni programas nada: toda propuesta queda sujeta a aprobación humana.
+- Si piden administrar anuncios pagados, asignar presupuesto, elegir audiencias o publicar sin aprobación, no uses herramientas y responde exactamente: "Fuera de alcance: solo genero contenido orgánico y requiere aprobación humana."
 """

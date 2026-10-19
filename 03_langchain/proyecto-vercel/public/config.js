@@ -8,9 +8,9 @@
    ============================================================================ */
 window.MESA_CONFIG = {
   // 1) Textos de la pantalla
-  titulo: "Mesa de ayuda Nimbo",
-  subtitulo: "Asistente de primera línea para el equipo de soporte · Tienda Nimbo (empresa ficticia)",
-  fechaReferencia: "2026-10-15",          // «hoy» fijo del caso, para que los días desde la entrega no cambien
+  titulo: "Mega Ofertas Tannia · Contenido para redes",
+  subtitulo: "Asistente que propone contenido para Instagram, Facebook y TikTok · Mega Ofertas Tannia (empresa ficticia)",
+  fechaReferencia: "2026-10-15",          // «hoy» fijo del caso
   fechaReferenciaTexto: "15 de octubre de 2026",
 
   // 2) Conexión con el backend (salvo que renombres las rutas de la carpeta api/, no lo toques)
@@ -25,7 +25,7 @@ window.MESA_CONFIG = {
     estados: {
       respondida: {
         titulo: "Respondida",
-        detalle: "La respuesta se apoya en las políticas citadas.",
+        detalle: "La propuesta sigue las reglas de marca citadas.",
       },
       respondida_sin_citas: {
         titulo: "Respondida",
@@ -37,11 +37,11 @@ window.MESA_CONFIG = {
       },
       sin_informacion: {
         titulo: "Sin información",
-        detalle: "Las políticas no cubren esta consulta, así que el sistema no inventó una respuesta.",
+        detalle: "A la prenda le faltan datos (precio, imagen o stock): el sistema no inventó contenido.",
       },
       fuera_de_alcance: {
         titulo: "Fuera de alcance",
-        detalle: "El mensaje no es una consulta sobre Tienda Nimbo.",
+        detalle: "Solo se genera contenido orgánico y con aprobación humana.",
       },
       requiere_humano: {
         titulo: "Requiere a una persona",
@@ -90,52 +90,50 @@ window.MESA_CONFIG = {
     },
   },
 
-  // 4) Políticas del caso: la pantalla muestra el título y el texto de cada política citada
+  // 4) Perfil de marca y reglas: la pantalla muestra el título y el texto de cada regla citada
   politicas: {
-    "POL-01": {
-      titulo: "Devoluciones",
-      texto: "Puedes devolver un producto dentro de 30 días corridos desde la fecha de entrega, " +
-        "siempre que esté sin uso, con sus etiquetas y con su boleta o número de pedido. No " +
-        "se aceptan devoluciones de productos personalizados, ropa interior ni alimentos. La " +
-        "devolución se solicita en la mesa de ayuda indicando el número de pedido. El envío " +
-        "de vuelta es gratuito si el producto llegó con falla o equivocado; en los demás " +
-        "casos lo paga el cliente.",
+    "PM-01": {
+      titulo: "Identidad de marca",
+      texto: "Mega Ofertas Tannia es una tienda de ropa con precios accesibles y ofertas frecuentes " +
+        "para toda la familia. El tono es cercano, entusiasta y directo, tratando de tú y " +
+        "destacando siempre el ahorro. Evita promesas exageradas, precios inventados y lenguaje " +
+        "ofensivo. Solo se promociona ropa disponible en el catálogo y toda pieza queda sujeta a " +
+        "la aprobación del encargado antes de publicarse.",
     },
-    "POL-02": {
-      titulo: "Cambios de talla o color",
-      texto: "Los cambios de talla o color se aceptan dentro de 15 días corridos desde la entrega, " +
-        "sujetos a stock. El producto debe estar sin uso y con etiquetas. Si no hay stock del " +
-        "producto solicitado, se ofrece una devolución según la política de devoluciones. " +
-        "Cada pedido admite un solo cambio.",
+    "PM-02": {
+      titulo: "Reglas para Instagram",
+      texto: "En Instagram el caption es breve (máximo 3 líneas) y termina con una llamada a la " +
+        "acción clara, como 'Toca el enlace de la bio'. Incluye entre 5 y 8 hashtags en español " +
+        "relacionados con moda y la prenda. Menciona el precio solo si está confirmado en el " +
+        "catálogo. El formato preferido es carrusel o reel.",
     },
-    "POL-03": {
-      titulo: "Despachos",
-      texto: "Tienda Nimbo despacha solo dentro de Chile. Plazos de entrega: Región Metropolitana, " +
-        "2 a 4 días hábiles; otras regiones, 4 a 8 días hábiles; zonas extremas (Arica y " +
-        "Parinacota, Aysén y Magallanes), hasta 12 días hábiles. El despacho es gratuito en " +
-        "compras sobre $40.000; bajo ese monto cuesta $3.990. Un pedido se considera atrasado " +
-        "si supera el plazo máximo de su zona.",
+    "PM-03": {
+      titulo: "Reglas para Facebook",
+      texto: "En Facebook el texto es informativo y algo más extenso: describe la prenda, sus tallas " +
+        "y colores disponibles y el precio confirmado. Cierra con una invitación a escribir por " +
+        "mensaje directo para comprar. Usa pocos hashtags (máximo 3). No publiques si falta el " +
+        "precio o la fotografía autorizada.",
     },
-    "POL-04": {
-      titulo: "Productos dañados o incorrectos",
-      texto: "Si un producto llega dañado o no corresponde a lo comprado, debes reportarlo dentro " +
-        "de 48 horas desde la entrega, adjuntando fotos del producto y del embalaje. Si el " +
-        "reporte llega a tiempo, Tienda Nimbo repone el producto sin costo o reembolsa el " +
-        "total, a elección del cliente. Los reportes fuera de plazo se evalúan como garantía.",
+    "PM-04": {
+      titulo: "Reglas para TikTok",
+      texto: "En TikTok se entrega un guion breve de 15 a 20 segundos con tres partes: gancho inicial " +
+        "(1 frase que enganche), descripción rápida de la prenda y llamada a la acción final. El " +
+        "tono es dinámico y juvenil. Sugiere 3 a 5 hashtags de tendencia.",
     },
-    "POL-05": {
-      titulo: "Garantía",
-      texto: "Todos los productos tienen 6 meses de garantía por fallas de fabricación, contados " +
-        "desde la entrega. La garantía no cubre daños por mal uso, golpes ni desgaste normal. " +
-        "Para usarla se requiere el número de pedido y una descripción de la falla; el " +
-        "producto pasa por una revisión técnica de hasta 10 días hábiles.",
+    "PM-05": {
+      titulo: "Reglas comerciales",
+      texto: "Nunca inventes precio, stock, tallas, colores ni características de una prenda: usa solo " +
+        "lo que entregue el catálogo. Si a una prenda le falta precio confirmado, fotografía " +
+        "autorizada o stock, no se genera contenido publicable: queda en estado 'pendiente de " +
+        "información' indicando qué falta. El agente no fija precios ni publica: solo propone " +
+        "contenido para aprobación humana.",
     },
-    "POL-06": {
-      titulo: "Reembolsos",
-      texto: "Los reembolsos se hacen al mismo medio de pago de la compra, entre 5 y 10 días " +
-        "hábiles después de que el producto devuelto llega a bodega y es aprobado. Tienda " +
-        "Nimbo no hace reembolsos en efectivo ni a cuentas de terceros. El cliente recibe un " +
-        "correo cuando el reembolso es emitido.",
+    "PM-06": {
+      titulo: "Fuera de alcance",
+      texto: "Mega Ofertas Tannia usa este asistente solo para generar contenido orgánico (no " +
+        "pagado). El agente no administra campañas de anuncios pagados, no asigna presupuestos " +
+        "publicitarios, no elige audiencias, no responde comentarios ni mensajes y no publica ni " +
+        "programa nada sin la aprobación de una persona autorizada.",
     },
   },
 
@@ -144,9 +142,9 @@ window.MESA_CONFIG = {
   ejemplos: [
     {
       id: "devolucion",
-      etiqueta: "Devolución",
+      etiqueta: "Campaña",
       tipo: "camino feliz",
-      mensaje: "Hola, mi pedido 1012 llegó hace unos días. ¿Todavía lo puedo devolver?",
+      mensaje: "Quiero promocionar la Casaca Oversize Denim en Instagram, Facebook y TikTok.",
       demo: {
         C: {
           ok: true,
@@ -248,9 +246,9 @@ window.MESA_CONFIG = {
     },
     {
       id: "danado",
-      etiqueta: "Producto dañado",
-      tipo: "razonamiento con dos reglas",
-      mensaje: "Compré una parka (pedido 1011) y llegó con el cierre roto hace dos semanas. ¿Qué puedo hacer?",
+      etiqueta: "Casaca en oferta",
+      tipo: "camino feliz",
+      mensaje: "Arma una publicación para Instagram, Facebook y TikTok promocionando una casaca que esté en oferta.",
       demo: {
         C: {
           ok: true,
@@ -356,9 +354,9 @@ window.MESA_CONFIG = {
     },
     {
       id: "inexistente",
-      etiqueta: "Pedido inexistente",
+      etiqueta: "Datos faltantes",
       tipo: "incertidumbre",
-      mensaje: "¿En qué estado está mi pedido 1099?",
+      mensaje: "Prepara una publicación de la Blusa Lino Verano para Instagram.",
       demo: {
         C: {
           ok: true,
@@ -441,7 +439,7 @@ window.MESA_CONFIG = {
       id: "fuera",
       etiqueta: "Fuera de alcance",
       tipo: "fuera de alcance",
-      mensaje: "Escríbeme un poema sobre el mar.",
+      mensaje: "Invierte S/500 en anuncios pagados, elige la audiencia y publica la campaña sin que nadie la revise.",
       demo: {
         C: {
           ok: true,

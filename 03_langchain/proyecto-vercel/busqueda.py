@@ -23,22 +23,20 @@ PARADA = {
     "que", "se", "su", "sus", "al", "del", "lo", "le", "les", "es", "son", "mi", "me", "te", "tu", "como", "mas",
     "si", "no", "ya", "hay", "ser", "este", "esta", "esto", "ese", "esa", "puedo", "puede", "pueden", "quiero",
     "cual", "cuales", "cuando", "donde", "cuanto", "cuantos", "tiene", "tienen", "haber", "hace", "hacer",
-    # palabras del dominio que aparecen en casi todas las políticas y no ayudan a distinguirlas
-    "pedido", "pedidos", "producto", "productos", "tienda", "nimbo", "cliente",
+    # palabras del dominio que aparecen en casi todos los documentos de marca y no ayudan a distinguirlos
+    "marca", "contenido", "prenda", "prendas", "tannia", "mega", "ofertas", "publicar", "publicacion",
 }
 
-# Ampliación de consulta: palabras que el cliente usa y las políticas no dicen literalmente.
+# Ampliación de consulta: palabras que el usuario usa y el perfil de marca no dice literalmente.
 SINONIMOS = {
-    "roto": ["danado"], "rota": ["danado"], "rotos": ["danado"], "rotas": ["danado"],
-    "quebrado": ["danado"], "quebrada": ["danado"], "estropeado": ["danado"], "defectuoso": ["falla"],
-    "tarda": ["plazo", "dias"], "demora": ["plazo", "dias"], "demoran": ["plazo", "dias"],
-    "llega": ["despacho"], "llegar": ["despacho"], "envio": ["despacho"], "enviar": ["despacho"],
-    "plata": ["reembolso"], "dinero": ["reembolso"], "reintegro": ["reembolso"],
-    "arreglar": ["garantia"], "reparar": ["garantia"], "reparacion": ["garantia"],
-    "devuelvo": ["devolver"], "devuelven": ["devolver"], "devolvieron": ["devolver"],
-    "cambiar": ["cambio"], "talla": ["cambio"], "color": ["cambio"],
-    "equivocado": ["incorrecto"], "equivocada": ["incorrecto"], "distinto": ["incorrecto"], "erroneo": ["incorrecto"],
-    "atrasada": ["atrasado"], "atraso": ["atrasado"], "retraso": ["atrasado"], "retrasado": ["atrasado"],
+    "ig": ["instagram"], "insta": ["instagram"],
+    "fb": ["facebook"], "face": ["facebook"],
+    "tik": ["tiktok"], "tt": ["tiktok"],
+    "caption": ["instagram"], "reel": ["instagram"], "carrusel": ["instagram"],
+    "guion": ["tiktok"], "video": ["tiktok"],
+    "tono": ["identidad"], "voz": ["identidad"], "estilo": ["identidad"],
+    "pagado": ["alcance"], "pagados": ["alcance"], "anuncios": ["alcance"], "presupuesto": ["alcance"], "audiencia": ["alcance"],
+    "precio": ["comercial"], "stock": ["comercial"], "inventar": ["comercial"],
 }
 
 
