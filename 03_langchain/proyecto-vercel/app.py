@@ -26,6 +26,7 @@ from typing import Any
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
+import publicacion
 from contrato import VERSION, ErrorContrato, normalizar_salida, respuesta_error, validar_entrada
 
 # ----------------------------------------------------------------------------- EDITA AQUÍ
@@ -152,7 +153,8 @@ async def llamar_backend(mensaje: str) -> Any:
 async def salud() -> JSONResponse:
     """La pantalla pregunta aquí si hay backend y si pide código. No revela ningún secreto."""
     return responder({"ok": True, "version": VERSION, "backend": BACKEND, "ruta": RUTA,
-                      "configurado": configurado(), "requiere_codigo": bool(os.getenv("ACCESS_CODE", "").strip())})
+                      "configurado": configurado(), "requiere_codigo": bool(os.getenv("ACCESS_CODE", "").strip()),
+                      "publicar": publicacion.configurado()})
 
 
 @app.post("/api/triage")
@@ -176,6 +178,35 @@ async def triage(request: Request) -> JSONResponse:
     except Exception as e:  # noqa: BLE001  nunca se le devuelve al navegador un traceback
         registrar(id=id_solicitud, backend=BACKEND, ok=False, codigo="backend", error=type(e).__name__, ms=milisegundos(inicio))
         error = ErrorContrato("backend", "Error inesperado en la función de Vercel.", 500, type(e).__name__)
+        return responder(respuesta_error(error, id_solicitud, BACKEND), 500)
+
+
+@app.post("/api/publicar")
+async def publicar(request: Request) -> JSONResponse:
+    """Publica en una red un contenido YA APROBADO por una persona (Fase 2 · Zernio).
+
+    No ejecuta el agente ni el modelo: toma {red, contenido} y lo envía a Zernio de forma determinística.
+    """
+    inicio = time.perf_counter()
+    id_solicitud = uuid.uuid4().hex[:8]
+    try:
+        revisar_acceso(request)
+        limitar(ip_de(request))
+        cuerpo = await leer_json(request)
+        if not isinstance(cuerpo, dict):
+            raise ErrorContrato("validacion", "Falta el contenido a publicar.", 400, "cuerpo no es un objeto")
+        resultado = await asyncio.to_thread(publicacion.publicar, cuerpo.get("red"), cuerpo.get("contenido"))
+        salida = {"ok": True, "publicacion": resultado,
+                  "meta": {"version": VERSION, "backend": BACKEND, "id": id_solicitud, "latencia_ms": milisegundos(inicio)}}
+        registrar(id=id_solicitud, backend=BACKEND, ok=True, accion="publicar",
+                  red=resultado.get("red"), borrador=resultado.get("borrador"), ms=milisegundos(inicio))
+        return responder(salida)
+    except ErrorContrato as e:
+        registrar(id=id_solicitud, backend=BACKEND, ok=False, accion="publicar", codigo=e.codigo, detalle=e.detalle, ms=milisegundos(inicio))
+        return responder(respuesta_error(e, id_solicitud, BACKEND), e.status)
+    except Exception as e:  # noqa: BLE001
+        registrar(id=id_solicitud, backend=BACKEND, ok=False, accion="publicar", codigo="backend", error=type(e).__name__, ms=milisegundos(inicio))
+        error = ErrorContrato("backend", "Error inesperado al publicar.", 500, type(e).__name__)
         return responder(respuesta_error(error, id_solicitud, BACKEND), 500)
 
 

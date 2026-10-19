@@ -26,6 +26,8 @@
   const SVG_NS = 'http://www.w3.org/2000/svg';
   const RUTAS = ['A', 'B', 'R', 'C', 'D'];
   const ESTADOS = ['respondida', 'sin_informacion', 'fuera_de_alcance', 'requiere_humano'];
+  const ENDPOINT_PUBLICAR = C.endpointPublicar || '/api/publicar';
+  const REDES_NOMBRE = { instagram: 'Instagram', facebook: 'Facebook', tiktok: 'TikTok' };
   const params = new URLSearchParams(location.search);
   const rutaUrl = (params.get('ruta') || '').toUpperCase();
 
@@ -277,6 +279,62 @@
       el('p', { clase: 'texto-respuesta' }, conCitas(texto)));
   }
 
+  function publicarEstado(caja, tipo, mensaje) {
+    caja.className = 'publicar-estado publicar-' + tipo;
+    caja.replaceChildren(icono(tipo === 'ok' ? 'check' : 'alerta', 'icono-peq'), el('span', null, mensaje));
+    caja.hidden = false;
+  }
+
+  async function enviarPublicacion(red, contenido) {
+    const cabeceras = { 'Content-Type': 'application/json', Accept: 'application/json' };
+    if (estado.codigo) cabeceras['x-access-code'] = estado.codigo;
+    const res = await fetch(ENDPOINT_PUBLICAR, { method: 'POST', headers: cabeceras, body: JSON.stringify({ red, contenido }), cache: 'no-store' });
+    const crudo = await res.text();
+    let datos = null;
+    try { datos = JSON.parse(crudo); } catch (_) { /* no era JSON */ }
+    return datos || { ok: false, error: { codigo: 'no_json', mensaje: 'El servidor respondió algo que no es JSON.' } };
+  }
+
+  // Panel de la Fase 2: nada se publica sin que una persona revise y pulse el botón (aprobación humana).
+  function bloquePublicar(texto) {
+    const selector = el('select', { id: 'red-publicar', clase: 'campo-select' },
+      el('option', { value: 'instagram' }, 'Instagram'),
+      el('option', { value: 'facebook' }, 'Facebook'),
+      el('option', { value: 'tiktok' }, 'TikTok'));
+    const area = el('textarea', { clase: 'campo-area', rows: '6', 'aria-label': 'Contenido a publicar' });
+    area.value = texto;
+    const estadoCaja = el('p', { clase: 'publicar-estado', role: 'status', hidden: true });
+    const boton = el('button', { type: 'button', clase: 'boton boton-primario' }, icono('enviar'), el('span', null, 'Aprobar y publicar'));
+    boton.addEventListener('click', async () => {
+      const contenido = area.value.trim();
+      if (contenido.length < 3) { publicarEstado(estadoCaja, 'error', 'Escribe el contenido a publicar.'); return; }
+      boton.setAttribute('aria-disabled', 'true');
+      publicarEstado(estadoCaja, 'info', 'Enviando a Zernio…');
+      try {
+        const d = await enviarPublicacion(selector.value, contenido);
+        if (d.ok && d.publicacion) {
+          const p = d.publicacion;
+          const red = REDES_NOMBRE[p.red] || p.red;
+          publicarEstado(estadoCaja, 'ok', (p.borrador ? 'Borrador creado en Zernio' : 'Publicado') + ' · ' + red + (p.id ? ' · id ' + p.id : ''));
+        } else {
+          const err = d.error || {};
+          publicarEstado(estadoCaja, 'error', err.mensaje || ('No se pudo publicar (' + (err.codigo || 'error') + ').'));
+        }
+      } catch (_) {
+        publicarEstado(estadoCaja, 'error', 'No se pudo conectar para publicar.');
+      } finally {
+        boton.removeAttribute('aria-disabled');
+      }
+    });
+    return el('section', { clase: 'bloque bloque-publicar', 'aria-labelledby': 'h-publicar' },
+      el('div', { clase: 'bloque-cabecera' }, el('h3', { id: 'h-publicar' }, icono('enviar'), 'Aprobar y publicar en redes')),
+      el('p', { clase: 'ayuda' }, 'Nada se publica sin tu aprobación. Elige la red, deja solo el texto de esa red y revísalo antes de enviar.'),
+      el('div', { clase: 'publicar-controles' }, el('label', { for: 'red-publicar' }, 'Red'), selector),
+      area,
+      el('div', { clase: 'acciones' }, boton),
+      estadoCaja);
+  }
+
   function bloquePoliticas(citas) {
     const items = citas.map((id) => {
       const p = (C.politicas || {})[id];
@@ -370,6 +428,7 @@
       d.razon ? el('p', { clase: 'res-explica' }, el('strong', null, 'Razón: '), d.razon) : null,
       d.alerta ? el('div', { clase: 'alerta-res', role: 'note' }, icono('alerta'), el('p', null, el('strong', null, 'Alerta: '), d.alerta)) : null,
       respuesta ? bloqueRespuesta(respuesta) : null,
+      (estadoOk === 'respondida' && respuesta) ? bloquePublicar(respuesta) : null,
       citas.length ? bloquePoliticas(citas) : null,
     ];
     const tarjetas = [tarjetaPedido(d.pedido), tarjetaSolicitud(d.solicitud)].filter(Boolean);

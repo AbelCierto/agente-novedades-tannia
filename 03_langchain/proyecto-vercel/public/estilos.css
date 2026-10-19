@@ -253,6 +253,16 @@ textarea:focus-visible, input:focus-visible { outline-offset: 0; border-color: v
 
 .bloque-respuesta { border-left: 4px solid var(--acento); background: var(--acento-suave); padding: 1rem 1.1rem; border-radius: 0 12px 12px 0; }
 .texto-respuesta { font-size: 1.0625rem; line-height: 1.6; white-space: pre-wrap; overflow-wrap: anywhere; }
+
+/* Panel de publicación (Fase 2 · Zernio) */
+.bloque-publicar { border: 1px dashed var(--borde); border-radius: var(--radio-s); background: var(--superficie-2); padding: 1rem 1.1rem; }
+.publicar-controles { display: flex; align-items: center; gap: .6rem; margin: .6rem 0; }
+.campo-select, .campo-area { font: inherit; color: var(--tinta); background: var(--superficie); border: 1px solid var(--borde); border-radius: var(--radio-s); padding: .5rem .6rem; }
+.campo-area { display: block; width: 100%; margin-top: .4rem; resize: vertical; line-height: 1.5; white-space: pre-wrap; }
+.publicar-estado { display: flex; align-items: center; gap: .5rem; margin-top: .8rem; font-size: .9375rem; }
+.publicar-ok { color: var(--acento-texto); }
+.publicar-error { color: #b42318; }
+.publicar-info { color: var(--tinta-3); }
 .cita {
   display: inline-block; vertical-align: .05em; margin-inline: .1em; padding: 0 .4em; border: 1px solid var(--acento-texto); border-radius: 6px;
   font-family: var(--mono); font-size: .78em; line-height: 1.5; color: var(--acento-texto); background: var(--superficie);
