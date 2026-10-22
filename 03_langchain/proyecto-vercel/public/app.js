@@ -273,16 +273,94 @@
 
   function bloqueRespuesta(texto) {
     const copiar = el('button', { type: 'button', clase: 'boton boton-mini' }, icono('copiar', 'icono-peq'), el('span', null, 'Copiar'));
-    copiar.addEventListener('click', () => copiarTexto(texto, copiar));
+    copiar.addEventListener('click', () => copiarTexto(aTextoPlano(texto), copiar));
     return el('section', { clase: 'bloque bloque-respuesta', 'aria-labelledby': 'h-respuesta' },
       el('div', { clase: 'bloque-cabecera' }, el('h3', { id: 'h-respuesta' }, 'Respuesta sugerida'), copiar),
-      el('p', { clase: 'texto-respuesta' }, conCitas(texto)));
+      renderMarkdown(texto));
   }
 
-  function publicarEstado(caja, tipo, mensaje) {
-    caja.className = 'publicar-estado publicar-' + tipo;
-    caja.replaceChildren(icono(tipo === 'ok' ? 'check' : 'alerta', 'icono-peq'), el('span', null, mensaje));
-    caja.hidden = false;
+  /* ---- Markdown seguro: se construye con nodos (nunca innerHTML), el texto viene de un modelo ---- */
+  function mdCitas(texto) {
+    const nodos = [];
+    const re = /\[?(PM-\d{2})\]?/g;
+    let ultimo = 0;
+    let m;
+    while ((m = re.exec(texto)) !== null) {
+      if (m.index > ultimo) nodos.push(document.createTextNode(texto.slice(ultimo, m.index)));
+      nodos.push(el('span', { clase: 'cita', title: tituloPolitica(m[1]) }, m[1]));
+      ultimo = m.index + m[0].length;
+    }
+    if (ultimo < texto.length) nodos.push(document.createTextNode(texto.slice(ultimo)));
+    return nodos;
+  }
+
+  function mdInline(texto) {
+    const nodos = [];
+    for (const parte of texto.split(/(\*\*[^*]+\*\*)/g)) {
+      if (!parte) continue;
+      const negrita = /^\*\*([^*]+)\*\*$/.exec(parte);
+      if (negrita) nodos.push(el('strong', null, ...mdCitas(negrita[1])));
+      else nodos.push(...mdCitas(parte));
+    }
+    return nodos;
+  }
+
+  function renderMarkdown(md) {
+    const cont = el('div', { clase: 'md' });
+    let listaActual = null;
+    let tablaActual = null;
+    const cerrarLista = () => { if (listaActual) { cont.append(listaActual); listaActual = null; } };
+    const cerrarTabla = () => { if (tablaActual) { cont.append(tablaActual); tablaActual = null; } };
+    for (const bruto of String(md || '').split('\n')) {
+      const s = bruto.trim();
+      if (/^([-*_]\s*){3,}$/.test(s)) { cerrarLista(); cerrarTabla(); continue; }        // regla horizontal
+      if (s.includes('|') && /^[\s:|-]+$/.test(s)) { continue; }                          // separador de tabla
+      if (s.includes('|')) {                                                              // fila de tabla
+        cerrarLista();
+        if (!tablaActual) tablaActual = el('table', { clase: 'md-tabla' });
+        const celdas = s.split('|').map((c) => c.trim());
+        if (celdas.length && celdas[0] === '') celdas.shift();
+        if (celdas.length && celdas[celdas.length - 1] === '') celdas.pop();
+        tablaActual.append(el('tr', null, ...celdas.map((c) => el('td', null, ...mdInline(c)))));
+        continue;
+      }
+      cerrarTabla();
+      if (!s) { cerrarLista(); continue; }
+      const enc = /^(#{1,6})\s+(.*)$/.exec(s);
+      if (enc) { cerrarLista(); cont.append(el('p', { clase: 'md-h' }, ...mdInline(enc[2]))); continue; }
+      if (s.startsWith('>')) { cerrarLista(); cont.append(el('blockquote', { clase: 'md-cita' }, ...mdInline(s.replace(/^>\s*/, '')))); continue; }
+      const vineta = /^[-*+]\s+(.*)$/.exec(s);
+      if (vineta) { if (!listaActual) listaActual = el('ul', { clase: 'md-lista' }); listaActual.append(el('li', null, ...mdInline(vineta[1]))); continue; }
+      cerrarLista();
+      cont.append(el('p', { clase: 'md-p' }, ...mdInline(s)));
+    }
+    cerrarLista();
+    cerrarTabla();
+    return cont;
+  }
+
+  // Versión en texto plano (igual que contrato.texto_plano) para la caja de publicar y para copiar.
+  function aTextoPlano(md) {
+    const salida = [];
+    for (const bruto of String(md || '').split('\n')) {
+      let s = bruto.trim();
+      if (/^([-=_*]\s*){3,}$/.test(s)) continue;
+      if (s.includes('|') && /^[\s:|-]+$/.test(s)) continue;
+      s = s.replace(/^#{1,6}\s+/, '').replace(/^>\s*/, '').replace(/^[-*+]\s+/, '• ');
+      if (s.includes('|')) s = s.split('|').map((c) => c.trim()).filter(Boolean).join(' ');
+      salida.push(s);
+    }
+    return salida.join('\n')
+      .replace(/(\*\*|__|\*|_|`)/g, '')
+      .replace(/\s*\[PM-\d{2}\]/g, '')
+      .replace(/[ \t]{2,}/g, ' ')
+      .replace(/\n{3,}/g, '\n\n')
+      .trim();
+  }
+
+  function lineaEstado(tipo, mensaje) {
+    return el('p', { clase: 'publicar-estado publicar-' + tipo },
+      icono(tipo === 'ok' ? 'check' : 'alerta', 'icono-peq'), el('span', null, mensaje));
   }
 
   async function enviarPublicacion(red, contenido) {
@@ -295,42 +373,86 @@
     return datos || { ok: false, error: { codigo: 'no_json', mensaje: 'El servidor respondió algo que no es JSON.' } };
   }
 
-  // Panel de la Fase 2: nada se publica sin que una persona revise y pulse el botón (aprobación humana).
-  function bloquePublicar(texto) {
-    const selector = el('select', { id: 'red-publicar', clase: 'campo-select' },
-      el('option', { value: 'instagram' }, 'Instagram'),
-      el('option', { value: 'facebook' }, 'Facebook'),
-      el('option', { value: 'tiktok' }, 'TikTok'));
-    const area = el('textarea', { clase: 'campo-area', rows: '6', 'aria-label': 'Contenido a publicar' });
-    area.value = texto;
-    const estadoCaja = el('p', { clase: 'publicar-estado', role: 'status', hidden: true });
-    const boton = el('button', { type: 'button', clase: 'boton boton-primario' }, icono('enviar'), el('span', null, 'Aprobar y publicar'));
-    boton.addEventListener('click', async () => {
-      const contenido = area.value.trim();
-      if (contenido.length < 3) { publicarEstado(estadoCaja, 'error', 'Escribe el contenido a publicar.'); return; }
-      boton.setAttribute('aria-disabled', 'true');
-      publicarEstado(estadoCaja, 'info', 'Enviando a Zernio…');
-      try {
-        const d = await enviarPublicacion(selector.value, contenido);
-        if (d.ok && d.publicacion) {
-          const p = d.publicacion;
-          const red = REDES_NOMBRE[p.red] || p.red;
-          publicarEstado(estadoCaja, 'ok', (p.borrador ? 'Borrador creado en Zernio' : 'Publicado') + ' · ' + red + (p.id ? ' · id ' + p.id : ''));
-        } else {
-          const err = d.error || {};
-          publicarEstado(estadoCaja, 'error', err.mensaje || ('No se pudo publicar (' + (err.codigo || 'error') + ').'));
-        }
-      } catch (_) {
-        publicarEstado(estadoCaja, 'error', 'No se pudo conectar para publicar.');
-      } finally {
-        boton.removeAttribute('aria-disabled');
-      }
+  // Detecta si una línea es el encabezado de una red (Instagram/Facebook/TikTok) y cuál.
+  function marcadorDeRed(linea) {
+    const limpio = linea.trim().toLowerCase()
+      .replace(/^[#>\s]*/, '').replace(/^\d+[.)]\s*/, '').replace(/^[^a-z]*/, '');
+    for (const red of ['instagram', 'facebook', 'tiktok']) {
+      if (limpio.startsWith(red)) return red;
+    }
+    return null;
+  }
+
+  // Parte la propuesta en la sección de cada red (texto plano), para que cada una reciba lo suyo.
+  function seccionesPorRed(md) {
+    const lineas = String(md || '').split('\n');
+    const marcas = [];
+    lineas.forEach((l, i) => {
+      const red = marcadorDeRed(l);
+      if (red && !marcas.some((m) => m.red === red)) marcas.push({ i, red });
     });
+    marcas.sort((a, b) => a.i - b.i);
+    const secciones = {};
+    marcas.forEach((m, k) => {
+      const fin = k + 1 < marcas.length ? marcas[k + 1].i : lineas.length;
+      secciones[m.red] = aTextoPlano(lineas.slice(m.i + 1, fin).join('\n'));
+    });
+    return secciones;
+  }
+
+  // Panel de la Fase 2: un cuadro editable por red; nada se publica sin que una persona lo apruebe.
+  function bloquePublicar(texto) {
+    const secciones = seccionesPorRed(texto);
+    const completo = aTextoPlano(texto);
+    const redes = [['instagram', 'Instagram'], ['facebook', 'Facebook'], ['tiktok', 'TikTok']];
+    const filas = redes.map(([val, lab]) => {
+      const cb = el('input', { type: 'checkbox', id: 'red-' + val, value: val, checked: true });
+      cb.checked = true;   // las tres marcadas por defecto
+      const area = el('textarea', { clase: 'campo-area', rows: '5', 'aria-label': 'Contenido para ' + lab });
+      area.value = secciones[val] || completo;   // su propia sección; si no se detectó, la propuesta completa
+      return { val, lab, cb, area };
+    });
+    const estadoCaja = el('div', { clase: 'publicar-estados', role: 'status', 'aria-live': 'polite' });
+    const boton = el('button', { type: 'button', clase: 'boton boton-primario' }, icono('enviar'), el('span', null, 'Aprobar y publicar'));
+
+    boton.addEventListener('click', async () => {
+      const activos = filas.filter((f) => f.cb.checked);
+      if (!activos.length) { estadoCaja.replaceChildren(lineaEstado('error', 'Elige al menos una red.')); return; }
+      boton.setAttribute('aria-disabled', 'true');
+      const resultados = [lineaEstado('info', `Publicando en ${activos.length} red(es)…`)];
+      estadoCaja.replaceChildren(...resultados);
+      resultados.length = 0;
+      for (const f of activos) {
+        const contenido = f.area.value.trim();
+        if (contenido.length < 3) {
+          resultados.push(lineaEstado('error', f.lab + ': el texto está vacío'));
+          estadoCaja.replaceChildren(...resultados);
+          continue;
+        }
+        try {
+          const d = await enviarPublicacion(f.val, contenido);
+          if (d.ok && d.publicacion) {
+            const p = d.publicacion;
+            resultados.push(lineaEstado('ok', (p.borrador ? 'Borrador' : 'Publicado') + ' · ' + f.lab + (p.id ? ' · id ' + p.id : '')));
+          } else {
+            const err = d.error || {};
+            resultados.push(lineaEstado('error', f.lab + ': ' + (err.mensaje || err.codigo || 'error')));
+          }
+        } catch (_) {
+          resultados.push(lineaEstado('error', f.lab + ': no se pudo conectar'));
+        }
+        estadoCaja.replaceChildren(...resultados);
+      }
+      boton.removeAttribute('aria-disabled');
+    });
+
+    const bloquesRed = filas.map((f) => el('div', { clase: 'publicar-red' },
+      el('label', { clase: 'red-check' }, f.cb, f.lab), f.area));
+
     return el('section', { clase: 'bloque bloque-publicar', 'aria-labelledby': 'h-publicar' },
       el('div', { clase: 'bloque-cabecera' }, el('h3', { id: 'h-publicar' }, icono('enviar'), 'Aprobar y publicar en redes')),
-      el('p', { clase: 'ayuda' }, 'Nada se publica sin tu aprobación. Elige la red, deja solo el texto de esa red y revísalo antes de enviar.'),
-      el('div', { clase: 'publicar-controles' }, el('label', { for: 'red-publicar' }, 'Red'), selector),
-      area,
+      el('p', { clase: 'ayuda' }, 'Cada red tiene su propio texto. Revísalo, desmarca la que no quieras y pulsa publicar. Nada se publica sin tu aprobación.'),
+      ...bloquesRed,
       el('div', { clase: 'acciones' }, boton),
       estadoCaja);
   }

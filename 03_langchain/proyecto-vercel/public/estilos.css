@@ -257,12 +257,26 @@ textarea:focus-visible, input:focus-visible { outline-offset: 0; border-color: v
 /* Panel de publicación (Fase 2 · Zernio) */
 .bloque-publicar { border: 1px dashed var(--borde); border-radius: var(--radio-s); background: var(--superficie-2); padding: 1rem 1.1rem; }
 .publicar-controles { display: flex; align-items: center; gap: .6rem; margin: .6rem 0; }
+.publicar-redes { display: flex; flex-wrap: wrap; gap: 1rem; margin: .6rem 0; }
+.publicar-red { margin: .7rem 0; }
+.publicar-red .red-check { margin-bottom: .3rem; }
+.red-check { display: inline-flex; align-items: center; gap: .4rem; font-weight: 600; }
 .campo-select, .campo-area { font: inherit; color: var(--tinta); background: var(--superficie); border: 1px solid var(--borde); border-radius: var(--radio-s); padding: .5rem .6rem; }
 .campo-area { display: block; width: 100%; margin-top: .4rem; resize: vertical; line-height: 1.5; white-space: pre-wrap; }
-.publicar-estado { display: flex; align-items: center; gap: .5rem; margin-top: .8rem; font-size: .9375rem; }
+.publicar-estados { display: grid; gap: .3rem; margin-top: .8rem; }
+.publicar-estado { display: flex; align-items: center; gap: .5rem; margin: 0; font-size: .9375rem; }
 .publicar-ok { color: var(--acento-texto); }
 .publicar-error { color: #b42318; }
 .publicar-info { color: var(--tinta-3); }
+
+/* Markdown renderizado de la propuesta */
+.md { display: grid; gap: .5rem; }
+.md-h { font-weight: 700; margin: .4rem 0 0; }
+.md-p { margin: 0; line-height: 1.55; }
+.md-cita { margin: 0; padding: .4rem .7rem; border-left: 3px solid var(--borde); color: var(--tinta-3); background: var(--superficie-2); border-radius: 0 8px 8px 0; }
+.md-lista { margin: 0; padding-left: 1.2rem; display: grid; gap: .2rem; }
+.md-tabla { border-collapse: collapse; width: 100%; font-size: .9rem; }
+.md-tabla td { border: 1px solid var(--borde); padding: .3rem .5rem; vertical-align: top; }
 .cita {
   display: inline-block; vertical-align: .05em; margin-inline: .1em; padding: 0 .4em; border: 1px solid var(--acento-texto); border-radius: 6px;
   font-family: var(--mono); font-size: .78em; line-height: 1.5; color: var(--acento-texto); background: var(--superficie);

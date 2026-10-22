@@ -28,7 +28,7 @@ from fastapi.responses import JSONResponse
 
 import publicacion
 import publicacion_meta
-from contrato import VERSION, ErrorContrato, normalizar_salida, respuesta_error, validar_entrada
+from contrato import VERSION, ErrorContrato, normalizar_salida, respuesta_error, texto_plano, validar_entrada
 
 # ----------------------------------------------------------------------------- EDITA AQUÍ
 BACKEND = "langchain"            # etiqueta que muestra la pantalla: n8n | make | langchain
@@ -185,6 +185,7 @@ async def triage(request: Request) -> JSONResponse:
 async def despachar_publicacion(red: str, contenido: str, imagen_url: str | None = None) -> Any:
     """Enruta cada red a su backend de publicación: TikTok → Zernio; Facebook/Instagram → Meta."""
     red_norm = (red or "").strip().lower()
+    contenido = texto_plano(contenido or "")   # las redes reciben texto plano, no markdown
     if red_norm == "tiktok":
         return await asyncio.to_thread(publicacion.publicar, red_norm, contenido)
     if red_norm in ("facebook", "instagram"):

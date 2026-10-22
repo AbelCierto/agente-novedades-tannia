@@ -56,6 +56,34 @@ def limpiar_texto(valor: Any, maximo: int) -> str:
     return texto[:maximo]
 
 
+_MD_ENFASIS = re.compile(r"(\*\*|__|\*|_|`)")
+_MD_CITA = re.compile(r"\s*\[PM-\d{2}\]")
+
+
+def texto_plano(md: str) -> str:
+    """Convierte el markdown de la propuesta en texto plano apto para publicar en redes."""
+    if not md:
+        return ""
+    lineas = []
+    for linea in md.split("\n"):
+        s = linea.strip()
+        if re.fullmatch(r"[-=_*\s]{3,}", s):   # reglas horizontales (--- , ***)
+            continue
+        if "|" in s and set(s) <= set("|-: "):  # fila separadora de tabla
+            continue
+        s = re.sub(r"^#{1,6}\s+", "", s)         # encabezados ### (con espacio; no toca #hashtags)
+        s = re.sub(r"^>\s*", "", s)              # citas >
+        s = re.sub(r"^\s*[-*+]\s+", "• ", s)     # viñetas
+        if "|" in s:                              # celdas de tabla -> espacios
+            s = " ".join(c.strip() for c in s.split("|") if c.strip())
+        lineas.append(s)
+    texto = "\n".join(lineas)
+    texto = _MD_ENFASIS.sub("", texto)            # **negrita** -> negrita
+    texto = _MD_CITA.sub("", texto)               # quita [PM-0X]
+    texto = re.sub(r"[ \t]{2,}", " ", texto)
+    return re.sub(r"\n{3,}", "\n\n", texto).strip()
+
+
 def validar_entrada(cuerpo: Any) -> str:
     """Devuelve el mensaje limpio o lanza ErrorContrato('validacion')."""
     if not isinstance(cuerpo, dict) or not isinstance(cuerpo.get("mensaje"), str):
