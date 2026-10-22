@@ -76,18 +76,27 @@ def _traducir(status: int, cuerpo: Any) -> ErrorContrato:
     return ErrorContrato("backend", "Meta respondió con un error al publicar.", 502, detalle, status >= 500)
 
 
-def publicar_facebook(contenido: str) -> dict[str, Any]:
+def publicar_facebook(contenido: str, imagen_url: str | None = None) -> dict[str, Any]:
     page_id = os.getenv("META_PAGE_ID", "").strip()
     if not page_id:
         raise ErrorContrato("sin_configurar", "Falta META_PAGE_ID en Vercel.", 503, "define el id de la Página")
     ahora = os.getenv("META_PUBLICAR", "").strip().lower() == "ahora"
-    datos = {"message": contenido, "access_token": _token()}
-    if not ahora:  # published=false deja la publicación sin publicar para revisarla en Meta Business Suite
-        datos["published"] = "false"
-    status, r = _pedir(f"/{page_id}/feed", datos)
-    if status not in (200, 201) or not isinstance(r, dict) or not r.get("id"):
+    token = _token()
+    if imagen_url:  # con imagen: se publica como foto con pie de foto
+        datos = {"url": imagen_url, "caption": contenido, "access_token": token}
+        if not ahora:
+            datos["published"] = "false"
+        status, r = _pedir(f"/{page_id}/photos", datos)
+        id_post = (r.get("post_id") or r.get("id")) if isinstance(r, dict) else None
+    else:
+        datos = {"message": contenido, "access_token": token}
+        if not ahora:  # published=false deja la publicación sin publicar para revisarla en Meta Business Suite
+            datos["published"] = "false"
+        status, r = _pedir(f"/{page_id}/feed", datos)
+        id_post = r.get("id") if isinstance(r, dict) else None
+    if status not in (200, 201) or not id_post:
         raise _traducir(status, r)
-    return {"red": "facebook", "id": limpiar_texto(r.get("id"), 80),
+    return {"red": "facebook", "id": limpiar_texto(id_post, 80),
             "estado": "publicado" if ahora else "no_publicado", "borrador": not ahora}
 
 
@@ -118,7 +127,7 @@ def publicar(red: str, contenido: str, imagen_url: str | None = None) -> dict[st
     if len(contenido) < 3:
         raise ErrorContrato("validacion", "El contenido a publicar está vacío.", 400, "contenido muy corto")
     if red == "facebook":
-        return publicar_facebook(contenido)
+        return publicar_facebook(contenido, imagen_url)
     if red == "instagram":
         return publicar_instagram(contenido, imagen_url)
     raise ErrorContrato("validacion", "Red no soportada por Meta.", 400, "usa facebook o instagram")

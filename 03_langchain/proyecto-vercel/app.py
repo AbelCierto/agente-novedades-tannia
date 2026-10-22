@@ -26,6 +26,7 @@ from typing import Any
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
+import imagen
 import publicacion
 import publicacion_meta
 from contrato import VERSION, ErrorContrato, normalizar_salida, respuesta_error, texto_plano, validar_entrada
@@ -187,10 +188,33 @@ async def despachar_publicacion(red: str, contenido: str, imagen_url: str | None
     red_norm = (red or "").strip().lower()
     contenido = texto_plano(contenido or "")   # las redes reciben texto plano, no markdown
     if red_norm == "tiktok":
-        return await asyncio.to_thread(publicacion.publicar, red_norm, contenido)
+        return await asyncio.to_thread(publicacion.publicar, red_norm, contenido, imagen_url)
     if red_norm in ("facebook", "instagram"):
         return await asyncio.to_thread(publicacion_meta.publicar, red_norm, contenido, imagen_url)
     raise ErrorContrato("validacion", "Red no soportada.", 400, "usa tiktok, facebook o instagram")
+
+
+@app.post("/api/imagen")
+async def generar_imagen(request: Request) -> JSONResponse:
+    """Genera UNA imagen para la campaña (se reutiliza en las tres redes). No publica nada."""
+    inicio = time.perf_counter()
+    id_solicitud = uuid.uuid4().hex[:8]
+    try:
+        revisar_acceso(request)
+        limitar(ip_de(request))
+        cuerpo = await leer_json(request)
+        descripcion = texto_plano((cuerpo or {}).get("descripcion") or "") if isinstance(cuerpo, dict) else ""
+        url = await asyncio.to_thread(imagen.generar_imagen, descripcion)
+        registrar(id=id_solicitud, backend=BACKEND, ok=True, accion="imagen", ms=milisegundos(inicio))
+        return responder({"ok": True, "imagen_url": url,
+                          "meta": {"version": VERSION, "backend": BACKEND, "id": id_solicitud, "latencia_ms": milisegundos(inicio)}})
+    except ErrorContrato as e:
+        registrar(id=id_solicitud, backend=BACKEND, ok=False, accion="imagen", codigo=e.codigo, detalle=e.detalle, ms=milisegundos(inicio))
+        return responder(respuesta_error(e, id_solicitud, BACKEND), e.status)
+    except Exception as e:  # noqa: BLE001
+        registrar(id=id_solicitud, backend=BACKEND, ok=False, accion="imagen", codigo="backend", error=type(e).__name__, ms=milisegundos(inicio))
+        error = ErrorContrato("backend", "Error inesperado al generar la imagen.", 500, type(e).__name__)
+        return responder(respuesta_error(error, id_solicitud, BACKEND), 500)
 
 
 @app.post("/api/publicar")

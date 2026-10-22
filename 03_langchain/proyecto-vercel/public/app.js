@@ -363,14 +363,26 @@
       icono(tipo === 'ok' ? 'check' : 'alerta', 'icono-peq'), el('span', null, mensaje));
   }
 
-  async function enviarPublicacion(red, contenido) {
+  async function enviarPublicacion(red, contenido, imagenUrl) {
     const cabeceras = { 'Content-Type': 'application/json', Accept: 'application/json' };
     if (estado.codigo) cabeceras['x-access-code'] = estado.codigo;
-    const res = await fetch(ENDPOINT_PUBLICAR, { method: 'POST', headers: cabeceras, body: JSON.stringify({ red, contenido }), cache: 'no-store' });
+    const payload = { red, contenido };
+    if (imagenUrl) payload.imagen_url = imagenUrl;
+    const res = await fetch(ENDPOINT_PUBLICAR, { method: 'POST', headers: cabeceras, body: JSON.stringify(payload), cache: 'no-store' });
     const crudo = await res.text();
     let datos = null;
     try { datos = JSON.parse(crudo); } catch (_) { /* no era JSON */ }
     return datos || { ok: false, error: { codigo: 'no_json', mensaje: 'El servidor respondió algo que no es JSON.' } };
+  }
+
+  async function generarImagen(descripcion) {
+    const cabeceras = { 'Content-Type': 'application/json', Accept: 'application/json' };
+    if (estado.codigo) cabeceras['x-access-code'] = estado.codigo;
+    const res = await fetch('/api/imagen', { method: 'POST', headers: cabeceras, body: JSON.stringify({ descripcion }), cache: 'no-store' });
+    const crudo = await res.text();
+    let datos = null;
+    try { datos = JSON.parse(crudo); } catch (_) { /* no era JSON */ }
+    return datos || { ok: false, error: { codigo: 'no_json' } };
   }
 
   // Detecta si una línea es el encabezado de una red (Instagram/Facebook/TikTok) y cuál.
@@ -419,9 +431,14 @@
       const activos = filas.filter((f) => f.cb.checked);
       if (!activos.length) { estadoCaja.replaceChildren(lineaEstado('error', 'Elige al menos una red.')); return; }
       boton.setAttribute('aria-disabled', 'true');
-      const resultados = [lineaEstado('info', `Publicando en ${activos.length} red(es)…`)];
-      estadoCaja.replaceChildren(...resultados);
-      resultados.length = 0;
+      estadoCaja.replaceChildren(lineaEstado('info', 'Generando imagen de la campaña…'));
+      let imagenUrl = null;
+      try {
+        const di = await generarImagen(completo);
+        if (di.ok && di.imagen_url) imagenUrl = di.imagen_url;
+      } catch (_) { /* sin imagen: Instagram y TikTok lo reportarán */ }
+      const resultados = [];
+      if (!imagenUrl) resultados.push(lineaEstado('error', 'No se generó imagen (Instagram y TikTok la requieren)'));
       for (const f of activos) {
         const contenido = f.area.value.trim();
         if (contenido.length < 3) {
@@ -430,7 +447,7 @@
           continue;
         }
         try {
-          const d = await enviarPublicacion(f.val, contenido);
+          const d = await enviarPublicacion(f.val, contenido, imagenUrl);
           if (d.ok && d.publicacion) {
             const p = d.publicacion;
             resultados.push(lineaEstado('ok', (p.borrador ? 'Borrador' : 'Publicado') + ' · ' + f.lab + (p.id ? ' · id ' + p.id : '')));

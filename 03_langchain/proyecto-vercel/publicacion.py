@@ -103,25 +103,38 @@ def _cuenta_id(perfil_id: str, red: str) -> str:
     return cuenta.get("_id") or cuenta.get("id")
 
 
-def publicar(red: str, contenido: str) -> dict[str, Any]:
-    """Publica (o deja en borrador) un contenido ya aprobado en una red. Devuelve {red, id, estado, borrador}."""
+def publicar(red: str, contenido: str, imagen_url: str | None = None) -> dict[str, Any]:
+    """Publica un contenido ya aprobado (TikTok). Devuelve {red, id, estado, borrador}."""
     red = (red or "").strip().lower()
     if red not in REDES_VALIDAS:
         raise ErrorContrato("validacion", "Red no soportada.", 400, f"usa una de: {', '.join(REDES_VALIDAS)}")
     contenido = limpiar_texto(contenido, MAX_CONTENIDO)
     if len(contenido) < 3:
         raise ErrorContrato("validacion", "El contenido a publicar está vacío.", 400, "contenido muy corto")
+    if red == "tiktok" and not imagen_url:
+        raise ErrorContrato("validacion", "TikTok requiere una imagen o un video.", 400, "falta imagen para TikTok")
 
     perfil_id = _perfil_id()
     cuenta_id = _cuenta_id(perfil_id, red)
     ahora = os.getenv("ZERNIO_PUBLICAR", "").strip().lower() == "ahora"
 
-    cuerpo = {
+    cuerpo: dict[str, Any] = {
         "content": contenido,
         "profileId": perfil_id,
         "platforms": [{"platform": red, "accountId": cuenta_id}],
         "publishNow" if ahora else "isDraft": True,
     }
+    if imagen_url:
+        cuerpo["mediaItems"] = [{"type": "image", "url": imagen_url}]
+    if red == "tiktok":
+        # TikTok exige estos ajustes; una foto admite cualquier privacidad (un video nuevo solo PUBLIC_TO_EVERYONE).
+        cuerpo["tiktokSettings"] = {
+            "privacy_level": "PUBLIC_TO_EVERYONE",
+            "allow_comment": True, "allow_duet": True, "allow_stitch": True,
+            "commercial_content_type": "none",
+            "content_preview_confirmed": True, "express_consent_given": True,
+            "media_type": "photo", "auto_add_music": True,
+        }
     status, respuesta = _pedir("POST", "/posts", cuerpo)
     if status not in (200, 201):
         raise _traducir_http(status, respuesta)
