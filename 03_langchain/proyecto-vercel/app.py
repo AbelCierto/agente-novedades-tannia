@@ -27,6 +27,7 @@ from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
 import publicacion
+import publicacion_meta
 from contrato import VERSION, ErrorContrato, normalizar_salida, respuesta_error, validar_entrada
 
 # ----------------------------------------------------------------------------- EDITA AQUÍ
@@ -154,7 +155,7 @@ async def salud() -> JSONResponse:
     """La pantalla pregunta aquí si hay backend y si pide código. No revela ningún secreto."""
     return responder({"ok": True, "version": VERSION, "backend": BACKEND, "ruta": RUTA,
                       "configurado": configurado(), "requiere_codigo": bool(os.getenv("ACCESS_CODE", "").strip()),
-                      "publicar": publicacion.configurado()})
+                      "publicar": publicacion.configurado() or publicacion_meta.configurado()})
 
 
 @app.post("/api/triage")
@@ -181,6 +182,16 @@ async def triage(request: Request) -> JSONResponse:
         return responder(respuesta_error(error, id_solicitud, BACKEND), 500)
 
 
+async def despachar_publicacion(red: str, contenido: str, imagen_url: str | None = None) -> Any:
+    """Enruta cada red a su backend de publicación: TikTok → Zernio; Facebook/Instagram → Meta."""
+    red_norm = (red or "").strip().lower()
+    if red_norm == "tiktok":
+        return await asyncio.to_thread(publicacion.publicar, red_norm, contenido)
+    if red_norm in ("facebook", "instagram"):
+        return await asyncio.to_thread(publicacion_meta.publicar, red_norm, contenido, imagen_url)
+    raise ErrorContrato("validacion", "Red no soportada.", 400, "usa tiktok, facebook o instagram")
+
+
 @app.post("/api/publicar")
 async def publicar(request: Request) -> JSONResponse:
     """Publica en una red un contenido YA APROBADO por una persona (Fase 2 · Zernio).
@@ -195,7 +206,7 @@ async def publicar(request: Request) -> JSONResponse:
         cuerpo = await leer_json(request)
         if not isinstance(cuerpo, dict):
             raise ErrorContrato("validacion", "Falta el contenido a publicar.", 400, "cuerpo no es un objeto")
-        resultado = await asyncio.to_thread(publicacion.publicar, cuerpo.get("red"), cuerpo.get("contenido"))
+        resultado = await despachar_publicacion(cuerpo.get("red"), cuerpo.get("contenido"), cuerpo.get("imagen_url"))
         salida = {"ok": True, "publicacion": resultado,
                   "meta": {"version": VERSION, "backend": BACKEND, "id": id_solicitud, "latencia_ms": milisegundos(inicio)}}
         registrar(id=id_solicitud, backend=BACKEND, ok=True, accion="publicar",

@@ -22,8 +22,8 @@ from contrato import ErrorContrato, limpiar_texto
 ZERNIO_API = "https://zernio.com/api/v1"
 TIMEOUT_S = 30
 
-# Las redes del caso Tannia se nombran igual en Zernio.
-REDES_VALIDAS = ("instagram", "facebook", "tiktok")
+# En el MVP híbrido, Zernio solo maneja TikTok; Facebook e Instagram van por Meta (publicacion_meta.py).
+REDES_VALIDAS = ("tiktok",)
 MAX_CONTENIDO = 2200
 
 
