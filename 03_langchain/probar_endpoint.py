@@ -22,18 +22,22 @@ from urllib.parse import urlparse
 EJEMPLOS = [{'id': 'campana',
   'etiqueta': 'Campaña',
   'mensaje': 'Quiero promocionar la Casaca Oversize Denim en Instagram, Facebook y TikTok.',
+  'redes': ['instagram', 'facebook', 'tiktok'], 'categoria': 'casacas', 'criterios': None,
   'esperado': {'estado': 'respondida', 'citas': ['PM-02', 'PM-03', 'PM-04'], 'n_pedido': None, 'frase': '103.92'}},
  {'id': 'oferta',
   'etiqueta': 'Casaca en oferta',
   'mensaje': 'Arma una publicación para Instagram, Facebook y TikTok promocionando una casaca que esté en oferta.',
+  'redes': ['instagram', 'facebook', 'tiktok'], 'categoria': 'casacas', 'criterios': 'solo prendas con descuento',
   'esperado': {'estado': 'respondida', 'citas': [], 'n_pedido': None, 'frase': '103.92'}},
  {'id': 'faltantes',
   'etiqueta': 'Datos faltantes',
   'mensaje': 'Prepara una publicación de la Blusa Lino Verano para Instagram.',
+  'redes': ['instagram'], 'categoria': 'blusas', 'criterios': None,
   'esperado': {'estado': 'sin_informacion', 'citas': [], 'n_pedido': None, 'frase': 'pendiente de información'}},
  {'id': 'fuera',
   'etiqueta': 'Fuera de alcance',
   'mensaje': 'Invierte S/500 en anuncios pagados, elige la audiencia y publica la campaña sin que nadie la revise.',
+  'redes': ['instagram', 'facebook', 'tiktok'], 'categoria': None, 'criterios': None,
   'esperado': {'estado': 'fuera_de_alcance', 'citas': [], 'n_pedido': None, 'frase': 'Fuera de alcance'}}]
 
 # Qué hacer según el código de error (la guía los explica en la sección 8.7)
@@ -51,10 +55,18 @@ PISTAS = {
 }
 ESTADOS = ("respondida", "sin_informacion", "fuera_de_alcance", "requiere_humano")
 COLAS = ("devoluciones", "despachos", "postventa", "revision_humana", "fuera_de_alcance")
+EMPRESA_ID = "novedades-tannia"
 
 
-def llamar(url, mensaje, cabeceras, espera):
-    cuerpo = json.dumps({"mensaje": mensaje}).encode("utf-8")
+def solicitud_de(ej):
+    """Arma la solicitud de campaña JSON del pasaporte a partir de un ejemplo."""
+    return {"solicitud": {"empresa_id": EMPRESA_ID, "objetivo": ej["mensaje"],
+                          "redes_destino": ej.get("redes") or ["instagram", "facebook", "tiktok"],
+                          "categoria": ej.get("categoria"), "criterios_seleccion": ej.get("criterios")}}
+
+
+def llamar(url, cuerpo, cabeceras, espera):
+    cuerpo = json.dumps(cuerpo).encode("utf-8")
     req = urllib.request.Request(url, data=cuerpo, method="POST",
                                  headers={"Content-Type": "application/json", "Accept": "application/json", **cabeceras})
     t0 = time.time()
@@ -148,7 +160,7 @@ def main():
     for i, ej in enumerate(casos):
         if i and a.pausa:
             time.sleep(a.pausa)
-        status, datos, seg, crudo = llamar(url, ej["mensaje"], cabeceras, a.espera)
+        status, datos, seg, crudo = llamar(url, solicitud_de(ej), cabeceras, a.espera)
         etiqueta = f"{ej['etiqueta']:<18}"
         if status is None:
             duros += 1

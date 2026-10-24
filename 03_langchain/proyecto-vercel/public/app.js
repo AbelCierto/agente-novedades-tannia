@@ -37,6 +37,7 @@
     salud: null,
     codigo: leer('mesa_codigo'),
     enCurso: null,
+    ultimaSolicitud: null,
     temporizadores: [],
   };
 
@@ -528,6 +529,9 @@
       el('summary', null, 'Detalles técnicos'),
       el('div', { clase: 'tecnico-cuerpo' },
         lista(filas),
+        estado.ultimaSolicitud ? el('details', { clase: 'json' },
+          el('summary', null, icono('codigo', 'icono-peq'), 'Ver la solicitud JSON enviada'),
+          el('pre', { tabindex: '0', 'aria-label': 'Solicitud JSON enviada' }, JSON.stringify({ solicitud: estado.ultimaSolicitud }, null, 2))) : null,
         el('details', { clase: 'json' },
           el('summary', null, icono('codigo', 'icono-peq'), 'Ver la respuesta JSON del contrato'),
           el('pre', { tabindex: '0', 'aria-label': 'Respuesta JSON del contrato' }, JSON.stringify(d, null, 2)))));
@@ -567,13 +571,13 @@
     return { ok: false, error: { codigo, mensaje: '', detalle: detalle || '', reintentable: ['red', 'timeout'].includes(codigo) }, meta: {} };
   }
 
-  async function analizarReal(mensaje, control) {
+  async function analizarReal(solicitud, control) {
     let vencio = false;
     const reloj = window.setTimeout(() => { vencio = true; control.abort(); }, C.timeoutMs);
     try {
       const cabeceras = { 'Content-Type': 'application/json', Accept: 'application/json' };
       if (estado.codigo) cabeceras['x-access-code'] = estado.codigo;
-      const res = await fetch(C.endpoint, { method: 'POST', headers: cabeceras, body: JSON.stringify({ mensaje }), signal: control.signal, cache: 'no-store' });
+      const res = await fetch(C.endpoint, { method: 'POST', headers: cabeceras, body: JSON.stringify({ solicitud }), signal: control.signal, cache: 'no-store' });
       const crudo = await res.text();
       let datos = null;
       try { datos = JSON.parse(crudo); } catch (_) { /* no era JSON */ }
@@ -587,13 +591,13 @@
     }
   }
 
-  async function analizarDemo(mensaje, control) {
+  async function analizarDemo(solicitud, control) {
     await new Promise((resolver) => {
       const t = window.setTimeout(resolver, 700 + Math.random() * 500);
       control.signal.addEventListener('abort', () => { window.clearTimeout(t); resolver(); }, { once: true });
     });
     if (control.signal.aborted) return errorLocal('cancelado');
-    const ej = C.ejemplos.find((x) => x.mensaje.trim() === mensaje);
+    const ej = C.ejemplos.find((x) => x.mensaje.trim() === solicitud.objetivo);
     if (!ej || !ej.demo) return { ok: false, sinEjemplo: true };
     return JSON.parse(JSON.stringify(ej.demo[estado.rutaDemo] || ej.demo.C));
   }
@@ -622,10 +626,39 @@
   }
   function usarEjemplo(ej) {
     $('mensaje').value = ej.mensaje;
+    ponerCampos(ej.redes, ej.categoria, ej.criterios);
     actualizarContador();
     errorCampo('');
     marcarEjemplo(ej.id);
-    anunciar('Ejemplo «' + ej.etiqueta + '» cargado en el mensaje');
+    anunciar('Ejemplo «' + ej.etiqueta + '» cargado en la solicitud');
+  }
+
+  /* ------------------------------------------------------------------ solicitud de campaña (JSON) */
+  function crearCamposSolicitud() {
+    const caja = $('redes-destino');
+    for (const red of C.redes || []) {
+      const check = el('input', { type: 'checkbox', name: 'red-destino', value: red });
+      check.checked = true;
+      caja.append(el('label', { clase: 'red-check' }, check, REDES_NOMBRE[red] || humanizar(red)));
+    }
+    const select = $('categoria');
+    select.append(el('option', { value: '' }, 'Cualquiera'));
+    for (const cat of C.categorias || []) select.append(el('option', { value: cat }, humanizar(cat)));
+  }
+  function ponerCampos(redes, categoria, criterios) {
+    const elegidas = Array.isArray(redes) ? redes : (C.redes || []);
+    document.querySelectorAll('input[name="red-destino"]').forEach((c) => { c.checked = elegidas.includes(c.value); });
+    $('categoria').value = categoria || '';
+    $('criterios').value = criterios || '';
+  }
+  function leerSolicitud() {
+    return {
+      empresa_id: C.empresaId,
+      objetivo: $('mensaje').value.trim(),
+      redes_destino: [...document.querySelectorAll('input[name="red-destino"]:checked')].map((c) => c.value),
+      categoria: $('categoria').value || null,
+      criterios_seleccion: $('criterios').value.trim() || null,
+    };
   }
   function crearEjemplos() {
     const ul = $('lista-ejemplos');
@@ -656,15 +689,21 @@
   async function enviar(evento) {
     evento.preventDefault();
     if (estado.enCurso) return;
-    const mensaje = $('mensaje').value.trim();
-    const problema = validar(mensaje);
+    const solicitud = leerSolicitud();
+    const problema = validar(solicitud.objetivo);
     if (problema) {
       errorCampo(problema);
       $('mensaje').focus();
       return;
     }
+    if (!solicitud.redes_destino.length) {
+      errorCampo('Elige al menos una red de destino.');
+      document.querySelector('input[name="red-destino"]').focus();
+      return;
+    }
     errorCampo('');
     $('codigo').removeAttribute('aria-invalid');
+    estado.ultimaSolicitud = estado.demo ? null : solicitud;
 
     const control = new AbortController();
     estado.enCurso = { control };
@@ -672,7 +711,7 @@
     vistaCargando();
     anunciar('Generando la propuesta');
     const inicio = performance.now();
-    const datos = estado.demo ? await analizarDemo(mensaje, control) : await analizarReal(mensaje, control);
+    const datos = estado.demo ? await analizarDemo(solicitud, control) : await analizarReal(solicitud, control);
     const ms = performance.now() - inicio;
     estado.enCurso = null;
     fijarCargando(false);
@@ -734,6 +773,7 @@
     $('titulo').textContent = C.titulo;
     $('subtitulo').textContent = C.subtitulo;
     $('mensaje').maxLength = C.maxCaracteres;
+    crearCamposSolicitud();
     crearEjemplos();
     vistaVacia();
     actualizarContador();
@@ -751,6 +791,7 @@
     });
     $('limpiar').addEventListener('click', () => {
       $('mensaje').value = '';
+      ponerCampos(null, '', '');
       actualizarContador();
       errorCampo('');
       marcarEjemplo('');

@@ -183,6 +183,10 @@ textarea:focus-visible, input:focus-visible { outline-offset: 0; border-color: v
 .error-campo { margin-top: .5rem; font-size: .875rem; font-weight: 600; color: var(--error); }
 .bloque-codigo { margin-top: 1rem; }
 .bloque-codigo .ayuda { margin-top: .4rem; }
+.campos-solicitud { border: 0; padding: 0; margin: 1rem 0 0; }
+.campos-solicitud .publicar-redes { margin: 0; }
+.campos-fila { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 3fr); gap: .8rem; margin-top: .9rem; }
+.campos-fila .campo-select { width: 100%; padding: .7rem .6rem; }
 
 .acciones { display: flex; flex-wrap: wrap; gap: .6rem; margin-top: 1.1rem; }
 .acciones-centro { justify-content: center; }

@@ -4,7 +4,7 @@ Esta función es lo único que ve el navegador. Cada vez que alguien pulsa «Gen
 
   1. Revisa el código de acceso (solo si definiste ACCESS_CODE en Vercel).
   2. Limita cuántas consultas seguidas puede hacer cada visitante.
-  3. Valida el mensaje (entre 3 y 1000 caracteres).
+  3. Valida la solicitud de campaña (JSON: empresa_id, objetivo, redes_destino, categoria, criterios_seleccion).
   4. Ejecuta el agente de LangChain (agente.py): consulta al modelo y a sus herramientas.
   5. Normaliza la respuesta al contrato v1 (contrato.py): siempre la misma forma hacia el navegador.
   6. Deja en los registros solo lo mínimo (id, estado, tiempo). Nunca el contenido de los mensajes.
@@ -29,7 +29,8 @@ from fastapi.responses import JSONResponse
 import imagen
 import publicacion
 import publicacion_meta
-from contrato import VERSION, ErrorContrato, normalizar_salida, respuesta_error, texto_plano, validar_entrada
+from contrato import VERSION, ErrorContrato, normalizar_salida, respuesta_error, texto_plano, validar_entrada, validar_solicitud
+from datos import CATEGORIAS, EMPRESA_ID
 
 # ----------------------------------------------------------------------------- EDITA AQUÍ
 BACKEND = "langchain"            # etiqueta que muestra la pantalla: n8n | make | langchain
@@ -166,7 +167,12 @@ async def triage(request: Request) -> JSONResponse:
     try:
         revisar_acceso(request)
         limitar(ip_de(request))
-        mensaje = validar_entrada(await leer_json(request))
+        cuerpo = await leer_json(request)
+        # "solicitud" es la entrada JSON del pasaporte; "mensaje" (texto libre) se mantiene por compatibilidad.
+        if isinstance(cuerpo, dict) and "solicitud" in cuerpo:
+            mensaje = validar_solicitud(cuerpo, EMPRESA_ID, CATEGORIAS)
+        else:
+            mensaje = validar_entrada(cuerpo)
         crudo = await llamar_backend(mensaje)
         resultado = normalizar_salida(crudo, backend=BACKEND, ruta=RUTA)
         resultado["meta"]["latencia_ms"] = milisegundos(inicio)

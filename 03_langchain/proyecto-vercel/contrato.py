@@ -13,6 +13,7 @@ Novedades Tannia viven en el backend.
 """
 from __future__ import annotations
 
+import json
 import re
 from typing import Any
 
@@ -25,6 +26,8 @@ MOTIVOS = ("devolucion", "cambio", "despacho", "producto_danado", "garantia", "r
 URGENCIAS = ("baja", "media", "alta")
 ESTADOS = ("respondida", "sin_informacion", "fuera_de_alcance", "requiere_humano")
 RUTAS = ("A", "B", "R", "C", "D")
+REDES = ("instagram", "facebook", "tiktok")
+MAX_CRITERIOS = 300
 
 # Las frases de abstención del PoC se vuelven estados que el código puede leer.
 FRASE_FUERA = "Fuera de alcance"
@@ -87,7 +90,7 @@ def texto_plano(md: str) -> str:
 def validar_entrada(cuerpo: Any) -> str:
     """Devuelve el mensaje limpio o lanza ErrorContrato('validacion')."""
     if not isinstance(cuerpo, dict) or not isinstance(cuerpo.get("mensaje"), str):
-        raise ErrorContrato("validacion", "Escribe el mensaje del cliente.", 400, "falta el campo mensaje")
+        raise ErrorContrato("validacion", "Escribe qué quieres publicar.", 400, "falta el campo mensaje")
     bruto = cuerpo["mensaje"]
     if len(bruto) > MAX_CARACTERES * 4:  # corta antes de limpiar mensajes absurdamente largos
         raise ErrorContrato("validacion", f"El mensaje supera los {MAX_CARACTERES} caracteres.", 400, "mensaje demasiado largo")
@@ -97,6 +100,32 @@ def validar_entrada(cuerpo: Any) -> str:
     if len(mensaje) > MAX_CARACTERES:
         raise ErrorContrato("validacion", f"El mensaje supera los {MAX_CARACTERES} caracteres.", 400, "mensaje demasiado largo")
     return mensaje
+
+
+def validar_solicitud(cuerpo: Any, empresa_id: str, categorias: list[str]) -> str:
+    """Valida {"solicitud": {empresa_id, objetivo, redes_destino, categoria, criterios_seleccion}} y devuelve
+    el texto que recibe el agente. Lanza ErrorContrato('validacion')."""
+    sol = cuerpo.get("solicitud") if isinstance(cuerpo, dict) else None
+    if not isinstance(sol, dict):
+        raise ErrorContrato("validacion", "Falta la solicitud de campaña.", 400, "solicitud no es un objeto")
+    if sol.get("empresa_id") != empresa_id:
+        raise ErrorContrato("validacion", "La empresa de la solicitud no es válida.", 400, "empresa_id desconocido")
+    objetivo = validar_entrada({"mensaje": sol.get("objetivo")})
+    redes = sol.get("redes_destino")
+    if not isinstance(redes, list) or not redes or any(r not in REDES for r in redes):
+        raise ErrorContrato("validacion", "Elige al menos una red: Instagram, Facebook o TikTok.", 400, "redes_destino inválido")
+    categoria = limpiar_texto(sol.get("categoria"), 40).lower()
+    if categoria and categoria not in categorias:
+        raise ErrorContrato("validacion", "La categoría no existe en el catálogo.", 400, "categoria desconocida")
+    criterios = limpiar_texto(sol.get("criterios_seleccion"), MAX_CRITERIOS)
+    limpia = {
+        "empresa_id": empresa_id,
+        "objetivo": objetivo,
+        "redes_destino": list(dict.fromkeys(redes)),
+        "categoria": categoria or None,
+        "criterios_seleccion": criterios or None,
+    }
+    return "Solicitud de campaña (JSON):\n" + json.dumps(limpia, ensure_ascii=False)
 
 
 def _entero(valor: Any) -> int | None:

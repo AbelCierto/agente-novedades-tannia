@@ -13,6 +13,11 @@ window.MESA_CONFIG = {
   fechaReferencia: "2026-10-15",          // «hoy» fijo del caso
   fechaReferenciaTexto: "15 de octubre de 2026",
 
+  // Solicitud de campaña (entrada JSON del pasaporte). Las categorías deben coincidir con las del catálogo (datos.py).
+  empresaId: "novedades-tannia",
+  redes: ["instagram", "facebook", "tiktok"],
+  categorias: ["accesorios", "blusas", "casacas", "faldas", "pantalones", "poleras", "vestidos"],
+
   // 2) Conexión con el backend (salvo que renombres las rutas de la carpeta api/, no lo toques)
   endpoint: "/api/triage",
   health: "/api/health",
@@ -144,6 +149,9 @@ window.MESA_CONFIG = {
       etiqueta: "Campaña",
       tipo: "camino feliz",
       mensaje: "Quiero promocionar la Casaca Oversize Denim en Instagram, Facebook y TikTok.",
+      redes: ["instagram", "facebook", "tiktok"],
+      categoria: "casacas",
+      criterios: "",
       demo: {
         C: {
           ok: true,
@@ -179,6 +187,9 @@ window.MESA_CONFIG = {
       etiqueta: "Casaca en oferta",
       tipo: "camino feliz",
       mensaje: "Arma una publicación para Instagram, Facebook y TikTok promocionando una casaca que esté en oferta.",
+      redes: ["instagram", "facebook", "tiktok"],
+      categoria: "casacas",
+      criterios: "solo prendas con descuento",
       demo: {
         C: {
           ok: true,
@@ -213,14 +224,17 @@ window.MESA_CONFIG = {
       etiqueta: "Datos faltantes",
       tipo: "incertidumbre",
       mensaje: "Prepara una publicación de la Blusa Lino Verano para Instagram.",
+      redes: ["instagram"],
+      categoria: "blusas",
+      criterios: "",
       demo: {
         C: {
           ok: true,
           estado: "sin_informacion",
-          respuesta: "La Blusa Lino Verano (SKU-108) queda en estado pendiente de información: le faltan el precio " +
-            "confirmado y la imagen autorizada [PM-05]. Cuando el catálogo tenga esos datos, preparo la publicación " +
-            "para Instagram.",
-          citas: ["PM-05"],
+          respuesta: "Estado: pendiente de información. La Blusa Lino Verano (SKU-108) no tiene los datos completos " +
+            "para generar la publicación: le faltan el precio y la imagen autorizada. Actualiza esos campos en el " +
+            "catálogo y vuelve a solicitar la publicación.",
+          citas: [],
           pedido: null,
           solicitud: null,
           cola: null,
@@ -228,9 +242,8 @@ window.MESA_CONFIG = {
           alerta: "",
           pasos: [
             { tipo: "herramienta", nombre: "consultar_catalogo", detalle: "categoria = blusas → 1 prenda(s): Blusa Lino Verano" },
-            { tipo: "herramienta", nombre: "buscar_perfil_marca", detalle: "«precio imagen faltante» → PM-05" },
           ],
-          meta: { version: "1.0", backend: "demo", ruta: "C", modelo: "", llamadas_modelo: 3, id: "demo" },
+          meta: { version: "1.0", backend: "demo", ruta: "C", modelo: "", llamadas_modelo: 2, id: "demo" },
         },
       },
     },
@@ -239,6 +252,9 @@ window.MESA_CONFIG = {
       etiqueta: "Fuera de alcance",
       tipo: "fuera de alcance",
       mensaje: "Invierte S/500 en anuncios pagados, elige la audiencia y publica la campaña sin que nadie la revise.",
+      redes: ["instagram", "facebook", "tiktok"],
+      categoria: "",
+      criterios: "",
       demo: {
         C: {
           ok: true,
