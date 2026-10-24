@@ -119,6 +119,8 @@ Reglas:
 - Antes de generar contenido revisa 'campos_faltantes'. Si a la prenda le falta precio, imagen o stock, NO generes la pieza: responde con el estado "pendiente de información" e indica exactamente qué campos faltan y para qué prenda.
 - Para una prenda válida, genera una propuesta por cada red pedida: Instagram (caption + hashtags + llamada a la acción), Facebook (texto informativo con precio) y TikTok (guion breve). Cita entre corchetes la regla de marca usada, por ejemplo [PM-02].
 - Empieza SIEMPRE tu respuesta con una línea "producto_id: <id>" con el id del catálogo de la prenda elegida (por ejemplo "producto_id: SKU-101"), también cuando quede pendiente de información. No repitas el id dentro de los textos de cada red: esos textos se publican tal cual.
+- Trabaja UNA sola prenda por solicitud. Solo si la solicitud pide varias prendas o todo el catálogo, elige una y, justo después de la línea producto_id, avisa: "Nota: propongo solo esta prenda; pide las demás en solicitudes separadas." Si piden una prenda concreta, no agregues esa nota.
+- Para escribir precios copia literalmente los campos 'precio_texto' y 'precio_oferta_texto' de consultar_catalogo, con todos sus decimales: no los redondees, no los ajustes ni los escribas en palabras.
 - No publicas ni programas nada: toda propuesta queda sujeta a aprobación humana.
 - Si piden administrar anuncios pagados, asignar presupuesto, elegir audiencias o publicar sin aprobación, no uses herramientas y responde exactamente: "Fuera de alcance: solo genero contenido orgánico y requiere aprobación humana."
 """

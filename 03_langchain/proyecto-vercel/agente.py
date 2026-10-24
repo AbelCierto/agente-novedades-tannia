@@ -73,6 +73,10 @@ def _precio_oferta(p: dict) -> float | None:
     return round(precio * (100 - descuento) / 100, 2)
 
 
+def _soles(valor: float | None) -> str | None:
+    return None if valor is None else f"S/{valor:.2f}"
+
+
 @tool("consultar_catalogo", description=DESC_CONSULTAR_CATALOGO)
 def consultar_catalogo(categoria: str = "", solo_disponibles: bool = True) -> str:
     # En un caso real, aquí iría una consulta a tu base de datos o a la API de tu tienda.
@@ -82,7 +86,9 @@ def consultar_catalogo(categoria: str = "", solo_disponibles: bool = True) -> st
             continue
         if solo_disponibles and not p.get("stock"):
             continue
-        resultado.append({**p, "precio_oferta": _precio_oferta(p), "campos_faltantes": _campos_faltantes(p)})
+        oferta = _precio_oferta(p)
+        resultado.append({**p, "precio_oferta": oferta, "campos_faltantes": _campos_faltantes(p),
+                          "precio_texto": _soles(p.get("precio_soles")), "precio_oferta_texto": _soles(oferta)})
     if not resultado:
         return json.dumps({"encontrado": False, "categoria": categoria, "mensaje": "No hay prendas que coincidan."}, ensure_ascii=False)
     return json.dumps({"encontrado": True, "prendas": resultado}, ensure_ascii=False)
@@ -167,7 +173,7 @@ def armar_salida(mensajes: list) -> dict[str, Any]:
     if not texto:
         raise ErrorContrato("backend", "El agente no logró terminar su respuesta.", 502, "el modelo no devolvió texto final", True)
     return {"respuesta": texto, "pedido": None, "pasos": pasos, "modelo": MODELO, "llamadas_modelo": len(respuestas_ia),
-            "alerta": _revisar_producto_id(texto)}
+            "alerta": " ".join(a for a in (_revisar_producto_id(texto), _revisar_precios(texto)) if a)}
 
 
 def _revisar_producto_id(texto: str) -> str:
@@ -180,6 +186,27 @@ def _revisar_producto_id(texto: str) -> str:
         return f"La propuesta menciona un producto_id que no existe en el catálogo: {', '.join(inexistentes)}. No la publiques."
     if not citados:
         return "La propuesta no indica el producto_id (SKU) de la prenda: verifica cuál es antes de publicar."
+    return ""
+
+
+_PRECIO = re.compile(r"S/\s*(\d{1,4}(?:[.,]\d{1,2})?)|(\d{1,4}(?:[.,]\d{1,2})?)\s*soles", re.I)
+
+
+def _revisar_precios(texto: str) -> str:
+    """Verifica en código que cada precio del texto sea el precio o el precio_oferta del catálogo (regla PM-05)."""
+    bajo = texto.lower()
+    if "fuera de alcance" in bajo or "pendiente de información" in bajo:
+        return ""
+    citados = set(re.findall(r"SKU-\d{3}", texto))
+    prendas = [p for p in PRODUCTOS if p["id"] in citados] or PRODUCTOS
+    validos = {round(v, 2) for p in prendas for v in (p.get("precio_soles"), _precio_oferta(p)) if v is not None}
+    raros = []
+    for m in _PRECIO.finditer(texto):
+        valor = round(float((m.group(1) or m.group(2)).replace(",", ".")), 2)
+        if valor not in validos and m.group(0).strip() not in raros:
+            raros.append(m.group(0).strip())
+    if raros:
+        return f"Precio que no coincide con el catálogo: {', '.join(raros[:3])}. Corrígelo antes de publicar."
     return ""
 
 
