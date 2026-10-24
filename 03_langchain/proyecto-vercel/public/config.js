@@ -156,7 +156,8 @@ window.MESA_CONFIG = {
         C: {
           ok: true,
           estado: "respondida",
-          respuesta: "### Instagram [PM-02]\n" +
+          respuesta: "producto_id: SKU-101\n\n" +
+            "### Instagram [PM-02]\n" +
             "Tu nueva casaca favorita a solo S/103.92. Casaca Oversize Denim con 20% de descuento hasta agotar stock, " +
             "tallas S, M y L en azul y negro.\nToca el enlace de la bio y asegura la tuya.\n" +
             "#NovedadesTannia #ModaPeru #Casaca #Denim #Oversize #Oferta\n\n" +
@@ -194,7 +195,8 @@ window.MESA_CONFIG = {
         C: {
           ok: true,
           estado: "respondida",
-          respuesta: "La casaca en oferta del catálogo es la Casaca Oversize Denim (20% hasta agotar stock).\n\n" +
+          respuesta: "producto_id: SKU-101\n\n" +
+            "La casaca en oferta del catálogo es la Casaca Oversize Denim (20% hasta agotar stock).\n\n" +
             "### Instagram [PM-02]\n" +
             "Oferta que no se repite: Casaca Oversize Denim a S/103.92. Tallas S, M y L en azul y negro.\n" +
             "Toca el enlace de la bio.\n#NovedadesTannia #Casaca #Denim #ModaPeru #Oferta\n\n" +
@@ -231,7 +233,8 @@ window.MESA_CONFIG = {
         C: {
           ok: true,
           estado: "sin_informacion",
-          respuesta: "Estado: pendiente de información. La Blusa Lino Verano (SKU-108) no tiene los datos completos " +
+          respuesta: "producto_id: SKU-108\n\n" +
+            "Estado: pendiente de información. La Blusa Lino Verano (SKU-108) no tiene los datos completos " +
             "para generar la publicación: le faltan el precio y la imagen autorizada. Actualiza esos campos en el " +
             "catálogo y vuelve a solicitar la publicación.",
           citas: [],

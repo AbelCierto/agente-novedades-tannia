@@ -166,7 +166,21 @@ def armar_salida(mensajes: list) -> dict[str, Any]:
     texto = _texto(final.content) if final else ""
     if not texto:
         raise ErrorContrato("backend", "El agente no logró terminar su respuesta.", 502, "el modelo no devolvió texto final", True)
-    return {"respuesta": texto, "pedido": None, "pasos": pasos, "modelo": MODELO, "llamadas_modelo": len(respuestas_ia)}
+    return {"respuesta": texto, "pedido": None, "pasos": pasos, "modelo": MODELO, "llamadas_modelo": len(respuestas_ia),
+            "alerta": _revisar_producto_id(texto)}
+
+
+def _revisar_producto_id(texto: str) -> str:
+    """Verifica en código que la propuesta indique un producto_id que exista en el catálogo (pasaporte: salida)."""
+    if "fuera de alcance" in texto.lower():
+        return ""
+    citados = set(re.findall(r"SKU-\d{3}", texto))
+    inexistentes = sorted(citados - {p["id"] for p in PRODUCTOS})
+    if inexistentes:
+        return f"La propuesta menciona un producto_id que no existe en el catálogo: {', '.join(inexistentes)}. No la publiques."
+    if not citados:
+        return "La propuesta no indica el producto_id (SKU) de la prenda: verifica cuál es antes de publicar."
+    return ""
 
 
 def _json_o_none(texto: str) -> Any:

@@ -331,6 +331,7 @@
     for (const bruto of String(md || '').split('\n')) {
       let s = bruto.trim();
       if (/^([-=_*]\s*){3,}$/.test(s)) continue;
+      if (/^\W*producto_id\W*:/i.test(s)) continue;
       if (s.includes('|') && /^[\s:|-]+$/.test(s)) continue;
       s = s.replace(/^#{1,6}\s+/, '').replace(/^>\s*/, '').replace(/^[-*+]\s+/, '• ');
       if (s.includes('|')) s = s.split('|').map((c) => c.trim()).filter(Boolean).join(' ');
@@ -339,6 +340,7 @@
     return salida.join('\n')
       .replace(/(\*\*|__|\*|_|`)/g, '')
       .replace(/\s*\[PM-\d{2}\]/g, '')
+      .replace(/\s*[[(]?SKU-\d{3}[\])]?/g, '')
       .replace(/[ \t]{2,}/g, ' ')
       .replace(/\n{3,}/g, '\n\n')
       .trim();

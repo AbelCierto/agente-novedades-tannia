@@ -61,6 +61,7 @@ def limpiar_texto(valor: Any, maximo: int) -> str:
 
 _MD_ENFASIS = re.compile(r"(\*\*|__|\*|_|`)")
 _MD_CITA = re.compile(r"\s*\[PM-\d{2}\]")
+_SKU = re.compile(r"\s*[\[(]?SKU-\d{3}[\])]?")
 
 
 def texto_plano(md: str) -> str:
@@ -71,6 +72,8 @@ def texto_plano(md: str) -> str:
     for linea in md.split("\n"):
         s = linea.strip()
         if re.fullmatch(r"[-=_*\s]{3,}", s):   # reglas horizontales (--- , ***)
+            continue
+        if re.match(r"^\W*producto_id\W*:", s, re.I):   # dato interno, no se publica
             continue
         if "|" in s and set(s) <= set("|-: "):  # fila separadora de tabla
             continue
@@ -83,6 +86,7 @@ def texto_plano(md: str) -> str:
     texto = "\n".join(lineas)
     texto = _MD_ENFASIS.sub("", texto)            # **negrita** -> negrita
     texto = _MD_CITA.sub("", texto)               # quita [PM-0X]
+    texto = _SKU.sub("", texto)                   # quita SKU-XXX
     texto = re.sub(r"[ \t]{2,}", " ", texto)
     return re.sub(r"\n{3,}", "\n\n", texto).strip()
 

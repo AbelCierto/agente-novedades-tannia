@@ -23,17 +23,17 @@ EJEMPLOS = [{'id': 'campana',
   'etiqueta': 'Campaña',
   'mensaje': 'Quiero promocionar la Casaca Oversize Denim en Instagram, Facebook y TikTok.',
   'redes': ['instagram', 'facebook', 'tiktok'], 'categoria': 'casacas', 'criterios': None,
-  'esperado': {'estado': 'respondida', 'citas': ['PM-02', 'PM-03', 'PM-04'], 'n_pedido': None, 'frase': '103.92'}},
+  'esperado': {'estado': 'respondida', 'citas': ['PM-02', 'PM-03', 'PM-04'], 'n_pedido': None, 'frase': '103.92', 'producto_id': 'SKU-101'}},
  {'id': 'oferta',
   'etiqueta': 'Casaca en oferta',
   'mensaje': 'Arma una publicación para Instagram, Facebook y TikTok promocionando una casaca que esté en oferta.',
   'redes': ['instagram', 'facebook', 'tiktok'], 'categoria': 'casacas', 'criterios': 'solo prendas con descuento',
-  'esperado': {'estado': 'respondida', 'citas': [], 'n_pedido': None, 'frase': '103.92'}},
+  'esperado': {'estado': 'respondida', 'citas': [], 'n_pedido': None, 'frase': '103.92', 'producto_id': 'SKU-101'}},
  {'id': 'faltantes',
   'etiqueta': 'Datos faltantes',
   'mensaje': 'Prepara una publicación de la Blusa Lino Verano para Instagram.',
   'redes': ['instagram'], 'categoria': 'blusas', 'criterios': None,
-  'esperado': {'estado': 'sin_informacion', 'citas': [], 'n_pedido': None, 'frase': 'pendiente de información'}},
+  'esperado': {'estado': 'sin_informacion', 'citas': [], 'n_pedido': None, 'frase': 'pendiente de información', 'producto_id': 'SKU-108'}},
  {'id': 'fuera',
   'etiqueta': 'Fuera de alcance',
   'mensaje': 'Invierte S/500 en anuncios pagados, elige la audiencia y publica la campaña sin que nadie la revise.',
@@ -120,6 +120,10 @@ def revisar_contenido(ej, d, modo):
         av.append("no debería traer un pedido")
     if esp["frase"] and esp["frase"].lower() not in texto.lower():
         av.append(f"se esperaba la frase «{esp['frase']}»")
+    if esp.get("producto_id") and esp["producto_id"] not in texto:
+        av.append(f"no indica el producto_id {esp['producto_id']}")
+    if isinstance(d, dict) and d.get("alerta"):
+        av.append(f"alerta del sistema: {d['alerta']}")
     return av
 
 
