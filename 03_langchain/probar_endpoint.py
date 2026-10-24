@@ -1,21 +1,12 @@
 #!/usr/bin/env python3
-"""Prueba un endpoint del MVP «Mesa de ayuda Nimbo» sin abrir el navegador.
+"""Prueba el MVP «Novedades Tannia» (agente de contenido para redes) sin abrir el navegador.
 
-Sirve para dos cosas, y conviene hacerlas en este orden:
+  En tu computador:   python probar_endpoint.py http://localhost:8000 --pausa 3
+  En Vercel:          python probar_endpoint.py https://tu-proyecto.vercel.app --pausa 3
+  Con código:         python probar_endpoint.py https://tu-proyecto.vercel.app --codigo-acceso EL_CODIGO
 
-  1. Probar tu BACKEND solo (el webhook de n8n o de Make), antes de conectarlo a Vercel:
-       python3 probar_endpoint.py https://TU-INSTANCIA.app.n8n.cloud/webhook/mesa-ayuda-nimbo --token TU_SECRETO
-       python3 probar_endpoint.py https://hook.us2.make.com/TU_CODIGO --cabecera x-make-apikey --token TU_CLAVE
-
-  2. Probar tu DESPLIEGUE en Vercel (la dirección pública de tu proyecto):
-       python3 probar_endpoint.py https://tu-proyecto.vercel.app
-       python3 probar_endpoint.py https://tu-proyecto.vercel.app --codigo-acceso EL_CODIGO     # si definiste ACCESS_CODE
-
-Envía los cuatro mensajes de ejemplo (o el tuyo con --mensaje) e informa, para cada uno, qué respondió el sistema y si
-cumple el contrato. Solo usa la biblioteca estándar de Python 3.9 o superior: no hay que instalar nada.
-
-Cuidado con las claves: escríbelas en tu terminal, no en archivos que compartas. Si prefieres que no queden en el
-historial del terminal, usa la variable de entorno TOKEN_BACKEND en vez de --token.
+Envía los cuatro pedidos de ejemplo (o el tuyo con --mensaje) a /api/triage e informa, para cada uno, qué respondió
+el agente y si cumple el contrato. No publica nada en redes. Solo usa la biblioteca estándar de Python 3.9 o superior.
 """
 import argparse
 import json
@@ -27,24 +18,22 @@ import urllib.error
 import urllib.request
 from urllib.parse import urlparse
 
-EJEMPLOS = [{'id': 'devolucion',
-  'etiqueta': 'Devolución',
-  'mensaje': 'Hola, mi pedido 1012 llegó hace unos días. ¿Todavía lo puedo devolver?',
-  'esperado': {'estado': 'respondida', 'citas': ['POL-01'], 'n_pedido': 1012, 'frase': ''}},
- {'id': 'danado',
-  'etiqueta': 'Producto dañado',
-  'mensaje': 'Compré una parka (pedido 1011) y llegó con el cierre roto hace dos semanas. ¿Qué puedo hacer?',
-  'esperado': {'estado': 'respondida', 'citas': ['POL-04', 'POL-05'], 'n_pedido': 1011, 'frase': ''}},
- {'id': 'inexistente',
-  'etiqueta': 'Pedido inexistente',
-  'mensaje': '¿En qué estado está mi pedido 1099?',
-  'esperado': {'estado': 'requiere_humano',
-               'citas': [],
-               'n_pedido': None,
-               'frase': 'No encontré el pedido 1099'}},
+# Mismos pedidos que los botones de config.js. 103.92 es el precio_oferta que calcula el código (129.90 - 20%).
+EJEMPLOS = [{'id': 'campana',
+  'etiqueta': 'Campaña',
+  'mensaje': 'Quiero promocionar la Casaca Oversize Denim en Instagram, Facebook y TikTok.',
+  'esperado': {'estado': 'respondida', 'citas': ['PM-02', 'PM-03', 'PM-04'], 'n_pedido': None, 'frase': '103.92'}},
+ {'id': 'oferta',
+  'etiqueta': 'Casaca en oferta',
+  'mensaje': 'Arma una publicación para Instagram, Facebook y TikTok promocionando una casaca que esté en oferta.',
+  'esperado': {'estado': 'respondida', 'citas': [], 'n_pedido': None, 'frase': '103.92'}},
+ {'id': 'faltantes',
+  'etiqueta': 'Datos faltantes',
+  'mensaje': 'Prepara una publicación de la Blusa Lino Verano para Instagram.',
+  'esperado': {'estado': 'sin_informacion', 'citas': [], 'n_pedido': None, 'frase': 'pendiente de información'}},
  {'id': 'fuera',
   'etiqueta': 'Fuera de alcance',
-  'mensaje': 'Escríbeme un poema sobre el mar.',
+  'mensaje': 'Invierte S/500 en anuncios pagados, elige la audiencia y publica la campaña sin que nadie la revise.',
   'esperado': {'estado': 'fuera_de_alcance', 'citas': [], 'n_pedido': None, 'frase': 'Fuera de alcance'}}]
 
 # Qué hacer según el código de error (la guía los explica en la sección 8.7)
@@ -53,12 +42,12 @@ PISTAS = {
     "acceso": "El despliegue pide código de acceso: usa --codigo-acceso.",
     "limite": "Demasiadas consultas seguidas: espera un minuto.",
     "sin_configurar": "Faltan variables de entorno en Vercel. Defínelas y vuelve a desplegar (Redeploy).",
-    "backend_acceso": "El token de Vercel no coincide con el del webhook. Revisa ambos lados y vuelve a desplegar.",
-    "backend_url": "La URL del webhook no existe o no está activa. n8n: publica el workflow y usa la URL de producción. Make: activa el escenario.",
+    "backend_acceso": "Un servicio externo (OpenRouter, Meta, Zernio u OpenAI) rechazó su clave. Revisa la variable de entorno.",
+    "backend_url": "La dirección configurada del servicio no existe o no está activa.",
     "cuota_ia": "Se agotó la cuota del modelo gratuito. Espera o prueba mañana.",
-    "backend": "El backend falló por dentro. n8n: mira Executions y busca el nodo en rojo. Make: mira History y el módulo que falló. LangChain: busca el id de la solicitud en los Logs de Vercel.",
-    "timeout": "El backend no respondió a tiempo. Reintenta; si se repite, mira la ejecución (n8n: Executions · Make: History · LangChain: Logs de Vercel).",
-    "respuesta_invalida": "El backend respondió con algo que no es el contrato. Revisa el último nodo o módulo, el que responde al webhook.",
+    "backend": "El agente falló por dentro. Busca el id de la solicitud en los Logs de Vercel (o en la terminal del servidor local).",
+    "timeout": "El agente no respondió a tiempo. Reintenta; si se repite, mira los Logs de Vercel o cambia MODEL_ID.",
+    "respuesta_invalida": "El agente respondió con algo que no es el contrato. Revisa armar_salida en agente.py.",
 }
 ESTADOS = ("respondida", "sin_informacion", "fuera_de_alcance", "requiere_humano")
 COLAS = ("devoluciones", "despachos", "postventa", "revision_humana", "fuera_de_alcance")
@@ -123,7 +112,7 @@ def revisar_contenido(ej, d, modo):
 
 
 def main():
-    ap = argparse.ArgumentParser(description="Prueba un endpoint del MVP Mesa de ayuda Nimbo.")
+    ap = argparse.ArgumentParser(description="Prueba el MVP Novedades Tannia (agente de contenido para redes).")
     ap.add_argument("url", help="URL del webhook (n8n, Make) o dirección de tu proyecto en Vercel")
     ap.add_argument("--modo", choices=("auto", "webhook", "proxy"), default="auto",
                     help="webhook = backend directo; proxy = despliegue de Vercel (por defecto se deduce de la URL)")

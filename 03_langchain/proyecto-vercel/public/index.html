@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Mesa de ayuda Nimbo · MVP</title>
-  <meta name="description" content="Interfaz de ejemplo de un MVP con IA: pega el mensaje de un cliente y recibe una respuesta apoyada en políticas, con sus fuentes. Tienda ficticia, datos sintéticos.">
+  <title>Novedades Tannia · Contenido para redes</title>
+  <meta name="description" content="Asistente de Novedades Tannia: describe la publicación que necesitas y recibe propuestas para Instagram, Facebook y TikTok basadas en el catálogo y las reglas de marca, con aprobación humana antes de publicar.">
   <meta name="color-scheme" content="light dark">
   <meta name="robots" content="noindex">
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
@@ -43,8 +43,8 @@
     <div class="marca">
       <span class="marca-icono" aria-hidden="true"><svg class="icono"><use href="#i-nube"/></svg></span>
       <div>
-        <h1 id="titulo">Mesa de ayuda Nimbo</h1>
-        <p id="subtitulo" class="subtitulo">Asistente de primera línea para el equipo de soporte · Tienda Nimbo (empresa ficticia)</p>
+        <h1 id="titulo">Novedades Tannia</h1>
+        <p id="subtitulo" class="subtitulo">Asistente de contenido para redes · Tienda de ropa para damas y caballeros</p>
       </div>
     </div>
     <p class="conexion" id="conexion" data-estado="comprobando" role="status">
@@ -57,7 +57,7 @@
 
   <main class="contenido">
     <section class="panel panel-entrada" id="entrada" aria-labelledby="t-entrada">
-      <h2 id="t-entrada" class="panel-titulo">Mensaje del cliente</h2>
+      <h2 id="t-entrada" class="panel-titulo">Pedido de contenido</h2>
 
       <form id="formulario" novalidate>
         <div class="ejemplos">
@@ -65,12 +65,12 @@
           <ul id="lista-ejemplos" class="ejemplos-lista" aria-labelledby="t-ejemplos"></ul>
         </div>
 
-        <label for="mensaje" class="etiqueta">Pega el mensaje tal como llegó</label>
+        <label for="mensaje" class="etiqueta">Describe la publicación que necesitas</label>
         <textarea id="mensaje" name="mensaje" rows="6" maxlength="1000" spellcheck="true"
-                  placeholder="Ejemplo: Hola, mi pedido 1012 llegó hace unos días. ¿Todavía lo puedo devolver?"
+                  placeholder="Ejemplo: Quiero promocionar la Casaca Oversize Denim en Instagram, Facebook y TikTok."
                   aria-describedby="ayuda-mensaje error-mensaje"></textarea>
         <div class="fila-meta">
-          <p id="ayuda-mensaje" class="ayuda">Usa solo datos de ejemplo: nada de nombres, correos ni teléfonos reales.</p>
+          <p id="ayuda-mensaje" class="ayuda">Menciona la prenda o la categoría y las redes donde quieres publicar.</p>
           <p id="contador" class="contador" aria-hidden="true">0 / 1000</p>
         </div>
         <p id="error-mensaje" class="error-campo" role="alert" hidden></p>
@@ -78,18 +78,18 @@
         <div id="bloque-codigo" class="bloque-codigo" hidden>
           <label for="codigo" class="etiqueta"><svg class="icono icono-peq" aria-hidden="true"><use href="#i-candado"/></svg> Código de acceso</label>
           <input id="codigo" name="codigo" type="password" autocomplete="off" spellcheck="false" maxlength="100" aria-describedby="ayuda-codigo">
-          <p id="ayuda-codigo" class="ayuda">Te lo entrega quien dicta el curso. Protege la cuota del modelo gratuito.</p>
+          <p id="ayuda-codigo" class="ayuda">Te lo entrega el administrador de Novedades Tannia. Protege la cuota del modelo y tus redes.</p>
         </div>
 
         <div class="acciones">
           <button type="submit" id="enviar" class="boton boton-primario">
             <svg class="icono" aria-hidden="true"><use href="#i-enviar"/></svg>
-            <span id="enviar-texto">Analizar mensaje</span>
+            <span id="enviar-texto">Generar propuesta</span>
             <kbd class="atajo" aria-hidden="true">Ctrl + Enter</kbd>
           </button>
           <button type="button" id="limpiar" class="boton boton-secundario">Limpiar</button>
         </div>
-        <p class="nota-cuota">Cada análisis usa la cuota del modelo. Con un modelo gratuito el cupo diario es pequeño: pruébalo con intención.</p>
+        <p class="nota-cuota">Cada propuesta usa la cuota del modelo. Con un modelo gratuito el cupo diario es pequeño: pruébalo con intención.</p>
       </form>
     </section>
 
@@ -109,14 +109,14 @@
           <li class="flujo-flecha" aria-hidden="true"><svg class="icono"><use href="#i-flecha"/></svg></li>
           <li><strong>Vercel</strong><span>/api/triage</span></li>
           <li class="flujo-flecha" aria-hidden="true"><svg class="icono"><use href="#i-flecha"/></svg></li>
-          <li><strong>Backend</strong><span>n8n · Make · LangChain</span></li>
+          <li><strong>Agente</strong><span>LangChain</span></li>
           <li class="flujo-flecha" aria-hidden="true"><svg class="icono"><use href="#i-flecha"/></svg></li>
           <li><strong>Modelo</strong><span>OpenRouter</span></li>
         </ol>
-        <p>Esta página es solo la interfaz. Al pulsar «Analizar mensaje», el navegador llama a <code>/api/triage</code> en el mismo sitio; esa función valida el mensaje, consulta al backend y devuelve siempre la misma forma de respuesta (el «contrato»). Por eso puedes cambiar de backend sin tocar esta pantalla, y por eso ninguna clave ni dirección secreta llega al navegador.</p>
+        <p>Esta página es solo la interfaz. Al pulsar «Generar propuesta», el navegador llama a <code>/api/triage</code> en el mismo sitio; esa función valida el pedido, ejecuta el agente (catálogo + reglas de marca) y devuelve siempre la misma forma de respuesta (el «contrato»). La publicación en redes es un paso aparte (<code>/api/publicar</code>) que solo ocurre cuando una persona aprueba el texto. Ninguna clave llega al navegador.</p>
       </div>
     </details>
-    <p class="pie-nota">Caso de ejemplo con datos sintéticos de una tienda ficticia. Las respuestas de un modelo de IA pueden tener errores: revisa siempre las políticas citadas.</p>
+    <p class="pie-nota">Catálogo de ejemplo con datos sintéticos. Las propuestas de un modelo de IA pueden tener errores: revisa siempre el texto y la imagen antes de aprobar y publicar.</p>
   </footer>
 
   <noscript><p class="sin-js">Esta interfaz necesita JavaScript para funcionar.</p></noscript>

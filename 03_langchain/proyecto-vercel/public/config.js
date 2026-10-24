@@ -1,15 +1,15 @@
 /* ============================================================================
-   Mesa de ayuda Nimbo · configuración de la interfaz  (contrato v1)
+   Novedades Tannia · configuración de la interfaz  (contrato v1)
 
    Este es el ÚNICO archivo que cambias para adaptar la pantalla a tu caso de uso:
-   títulos, ejemplos, nombres de las colas y las políticas que se muestran.
+   títulos, ejemplos y las reglas de marca que se muestran.
    El archivo es público (lo descarga cualquiera que abra la página):
    NO pongas aquí claves, tokens ni la URL de tu webhook.
    ============================================================================ */
 window.MESA_CONFIG = {
   // 1) Textos de la pantalla
-  titulo: "Mega Ofertas Tannia · Contenido para redes",
-  subtitulo: "Asistente que propone contenido para Instagram, Facebook y TikTok · Mega Ofertas Tannia (empresa ficticia)",
+  titulo: "Novedades Tannia · Contenido para redes",
+  subtitulo: "Asistente que propone contenido para Instagram, Facebook y TikTok · Tienda de ropa para damas y caballeros",
   fechaReferencia: "2026-10-15",          // «hoy» fijo del caso
   fechaReferenciaTexto: "15 de octubre de 2026",
 
@@ -94,8 +94,8 @@ window.MESA_CONFIG = {
   politicas: {
     "PM-01": {
       titulo: "Identidad de marca",
-      texto: "Mega Ofertas Tannia es una tienda de ropa con precios accesibles y ofertas frecuentes " +
-        "para toda la familia. El tono es cercano, entusiasta y directo, tratando de tú y " +
+      texto: "Novedades Tannia es una tienda de ropa para damas y caballeros con precios accesibles " +
+        "y novedades frecuentes. El tono es cercano, entusiasta y directo, tratando de tú y " +
         "destacando siempre el ahorro. Evita promesas exageradas, precios inventados y lenguaje " +
         "ofensivo. Solo se promociona ropa disponible en el catálogo y toda pieza queda sujeta a " +
         "la aprobación del encargado antes de publicarse.",
@@ -130,18 +130,17 @@ window.MESA_CONFIG = {
     },
     "PM-06": {
       titulo: "Fuera de alcance",
-      texto: "Mega Ofertas Tannia usa este asistente solo para generar contenido orgánico (no " +
+      texto: "Novedades Tannia usa este asistente solo para generar contenido orgánico (no " +
         "pagado). El agente no administra campañas de anuncios pagados, no asigna presupuestos " +
         "publicitarios, no elige audiencias, no responde comentarios ni mensajes y no publica ni " +
         "programa nada sin la aprobación de una persona autorizada.",
     },
   },
 
-  // 5) Ejemplos (botones de la izquierda). «demo» son las respuestas que se ven con ?demo=1:
-  //    C = lo que devuelve un agente (n8n o LangChain) · B = lo que devuelve un workflow (Make)
+  // 5) Ejemplos (botones de la izquierda). «demo.C» es la respuesta que se ve con ?demo=1 (sin llamar al modelo).
   ejemplos: [
     {
-      id: "devolucion",
+      id: "campana",
       etiqueta: "Campaña",
       tipo: "camino feliz",
       mensaje: "Quiero promocionar la Casaca Oversize Denim en Instagram, Facebook y TikTok.",
@@ -149,103 +148,34 @@ window.MESA_CONFIG = {
         C: {
           ok: true,
           estado: "respondida",
-          respuesta: "Sí, todavía puedes devolver tu pedido 1012: lo recibiste el 28 de septiembre, hace " +
-            "17 días, y el plazo de devolución es de 30 días corridos desde la entrega [POL-01]. " +
-            "El producto debe estar sin uso y con sus etiquetas, y la devolución se solicita en " +
-            "la mesa de ayuda indicando el número de pedido [POL-01].",
-          citas: ["POL-01"],
-          pedido: {
-            n_pedido: 1012,
-            estado: "entregado",
-            producto: "Cafetera de émbolo 1L",
-            fecha_entrega: "2026-09-28",
-            dias_desde_entrega: 17,
-          },
+          respuesta: "### Instagram [PM-02]\n" +
+            "Tu nueva casaca favorita a solo S/103.92. Casaca Oversize Denim con 20% de descuento hasta agotar stock, " +
+            "tallas S, M y L en azul y negro.\nToca el enlace de la bio y asegura la tuya.\n" +
+            "#NovedadesTannia #ModaPeru #Casaca #Denim #Oversize #Oferta\n\n" +
+            "### Facebook [PM-03]\n" +
+            "Llegó la Casaca Oversize Denim: corte amplio y cómodo, ideal para el día a día. Disponible en tallas S, M y L, " +
+            "en azul y negro. Precio regular S/129.90, hoy a S/103.92 (20% de descuento hasta agotar stock). " +
+            "Escríbenos por mensaje directo para comprar la tuya.\n#NovedadesTannia #Casaca #Oferta\n\n" +
+            "### TikTok [PM-04]\n" +
+            "Gancho: ¿Una casaca denim que combina con todo y está en oferta?\n" +
+            "Prenda: Casaca Oversize Denim, tallas S a L, azul o negro, de S/129.90 a S/103.92.\n" +
+            "Cierre: corre al enlace del perfil antes de que se agote.\n#NovedadesTannia #OutfitDelDia #Denim #Oferta",
+          citas: ["PM-02", "PM-03", "PM-04"],
+          pedido: null,
           solicitud: null,
           cola: null,
           razon: "",
           alerta: "",
           pasos: [
-            {
-              tipo: "herramienta",
-              nombre: "consultar_pedido",
-              detalle: "n_pedido = 1012 → entregado hace 17 días",
-            },
-            {
-              tipo: "herramienta",
-              nombre: "buscar_politicas",
-              detalle: "«plazo de devolución» → POL-01",
-            },
+            { tipo: "herramienta", nombre: "consultar_catalogo", detalle: "categoria = casacas → 2 prenda(s): Casaca Oversize Denim, Casaca Bomber Satén" },
+            { tipo: "herramienta", nombre: "buscar_perfil_marca", detalle: "«reglas instagram facebook tiktok» → PM-02, PM-03, PM-04" },
           ],
-          meta: {
-            version: "1.0",
-            backend: "demo",
-            ruta: "C",
-            modelo: "",
-            llamadas_modelo: 2,
-            id: "demo",
-          },
-        },
-        B: {
-          ok: true,
-          estado: "respondida",
-          respuesta: "Sí, todavía puedes devolver tu pedido 1012: lo recibiste el 28 de septiembre, hace " +
-            "17 días, y el plazo de devolución es de 30 días corridos desde la entrega [POL-01]. " +
-            "El producto debe estar sin uso y con sus etiquetas, y la devolución se solicita en " +
-            "la mesa de ayuda indicando el número de pedido [POL-01].",
-          citas: ["POL-01"],
-          pedido: {
-            n_pedido: 1012,
-            estado: "entregado",
-            producto: "Cafetera de émbolo 1L",
-            fecha_entrega: "2026-09-28",
-            dias_desde_entrega: 17,
-          },
-          solicitud: {
-            es_consulta_tienda: true,
-            n_pedido: 1012,
-            motivo: "devolucion",
-            urgencia: "baja",
-            resumen: "Consulta si todavía puede devolver el pedido 1012.",
-          },
-          cola: "devoluciones",
-          razon: "Pedido válido: se deriva según el motivo",
-          alerta: "",
-          pasos: [
-            {
-              tipo: "paso",
-              nombre: "extraer_datos",
-              detalle: "modelo → motivo = devolucion · n_pedido = 1012",
-            },
-            {
-              tipo: "paso",
-              nombre: "validar_pedido",
-              detalle: "tabla de pedidos → entregado hace 17 días",
-            },
-            {
-              tipo: "paso",
-              nombre: "derivar_cola",
-              detalle: "regla → devoluciones",
-            },
-            {
-              tipo: "paso",
-              nombre: "redactar_respuesta",
-              detalle: "modelo con las políticas de la tienda como contexto",
-            },
-          ],
-          meta: {
-            version: "1.0",
-            backend: "demo",
-            ruta: "B",
-            modelo: "",
-            llamadas_modelo: 2,
-            id: "demo",
-          },
+          meta: { version: "1.0", backend: "demo", ruta: "C", modelo: "", llamadas_modelo: 3, id: "demo" },
         },
       },
     },
     {
-      id: "danado",
+      id: "oferta",
       etiqueta: "Casaca en oferta",
       tipo: "camino feliz",
       mensaje: "Arma una publicación para Instagram, Facebook y TikTok promocionando una casaca que esté en oferta.",
@@ -253,185 +183,54 @@ window.MESA_CONFIG = {
         C: {
           ok: true,
           estado: "respondida",
-          respuesta: "Tu pedido 1011 (Parka de plumas) se entregó el 30 de septiembre, hace 15 días. Los " +
-            "productos dañados deben reportarse dentro de 48 horas desde la entrega [POL-04], por " +
-            "lo que ese plazo ya venció y el caso se evalúa como garantía, que cubre fallas de " +
-            "fabricación por 6 meses [POL-05]. Para usarla necesitamos el número de pedido y una " +
-            "descripción de la falla; el producto pasa por una revisión técnica de hasta 10 días " +
-            "hábiles [POL-05].",
-          citas: ["POL-04", "POL-05"],
-          pedido: {
-            n_pedido: 1011,
-            estado: "entregado",
-            producto: "Parka de plumas",
-            fecha_entrega: "2026-09-30",
-            dias_desde_entrega: 15,
-          },
+          respuesta: "La casaca en oferta del catálogo es la Casaca Oversize Denim (20% hasta agotar stock).\n\n" +
+            "### Instagram [PM-02]\n" +
+            "Oferta que no se repite: Casaca Oversize Denim a S/103.92. Tallas S, M y L en azul y negro.\n" +
+            "Toca el enlace de la bio.\n#NovedadesTannia #Casaca #Denim #ModaPeru #Oferta\n\n" +
+            "### Facebook [PM-03]\n" +
+            "Casaca Oversize Denim con 20% de descuento: de S/129.90 a S/103.92 hasta agotar stock. Tallas S, M y L, " +
+            "colores azul y negro. Escríbenos por mensaje directo para separar la tuya.\n#NovedadesTannia #Oferta\n\n" +
+            "### TikTok [PM-04]\n" +
+            "Gancho: 20% menos en la casaca que todos quieren.\n" +
+            "Prenda: Casaca Oversize Denim, azul o negro, tallas S a L, ahora S/103.92.\n" +
+            "Cierre: enlace en el perfil, hasta agotar stock.\n#NovedadesTannia #Oferta #Denim",
+          citas: ["PM-02", "PM-03", "PM-04"],
+          pedido: null,
           solicitud: null,
           cola: null,
           razon: "",
           alerta: "",
           pasos: [
-            {
-              tipo: "herramienta",
-              nombre: "consultar_pedido",
-              detalle: "n_pedido = 1011 → entregado hace 15 días",
-            },
-            {
-              tipo: "herramienta",
-              nombre: "buscar_politicas",
-              detalle: "«producto dañado plazo garantía» → POL-04, POL-05",
-            },
+            { tipo: "herramienta", nombre: "consultar_catalogo", detalle: "categoria = casacas → 2 prenda(s): Casaca Oversize Denim, Casaca Bomber Satén" },
+            { tipo: "herramienta", nombre: "buscar_perfil_marca", detalle: "«reglas instagram facebook tiktok» → PM-02, PM-03, PM-04" },
           ],
-          meta: {
-            version: "1.0",
-            backend: "demo",
-            ruta: "C",
-            modelo: "",
-            llamadas_modelo: 2,
-            id: "demo",
-          },
-        },
-        B: {
-          ok: true,
-          estado: "respondida",
-          respuesta: "Tu pedido 1011 (Parka de plumas) se entregó el 30 de septiembre, hace 15 días. Los " +
-            "productos dañados deben reportarse dentro de 48 horas desde la entrega [POL-04], por " +
-            "lo que ese plazo ya venció y el caso se evalúa como garantía, que cubre fallas de " +
-            "fabricación por 6 meses [POL-05]. Para usarla necesitamos el número de pedido y una " +
-            "descripción de la falla; el producto pasa por una revisión técnica de hasta 10 días " +
-            "hábiles [POL-05].",
-          citas: ["POL-04", "POL-05"],
-          pedido: {
-            n_pedido: 1011,
-            estado: "entregado",
-            producto: "Parka de plumas",
-            fecha_entrega: "2026-09-30",
-            dias_desde_entrega: 15,
-          },
-          solicitud: {
-            es_consulta_tienda: true,
-            n_pedido: 1011,
-            motivo: "producto_danado",
-            urgencia: "media",
-            resumen: "Parka del pedido 1011 con el cierre roto desde hace dos semanas; pide una solución.",
-          },
-          cola: "postventa",
-          razon: "Pedido válido: se deriva según el motivo",
-          alerta: "Reporte fuera del plazo de 48 horas (POL-04): se evalúa como garantía (POL-05).",
-          pasos: [
-            {
-              tipo: "paso",
-              nombre: "extraer_datos",
-              detalle: "modelo → motivo = producto_danado · n_pedido = 1011",
-            },
-            {
-              tipo: "paso",
-              nombre: "validar_pedido",
-              detalle: "tabla de pedidos → entregado hace 15 días",
-            },
-            {
-              tipo: "paso",
-              nombre: "derivar_cola",
-              detalle: "regla → postventa · alerta de plazo (más de 48 h)",
-            },
-            {
-              tipo: "paso",
-              nombre: "redactar_respuesta",
-              detalle: "modelo con las políticas de la tienda como contexto",
-            },
-          ],
-          meta: {
-            version: "1.0",
-            backend: "demo",
-            ruta: "B",
-            modelo: "",
-            llamadas_modelo: 2,
-            id: "demo",
-          },
+          meta: { version: "1.0", backend: "demo", ruta: "C", modelo: "", llamadas_modelo: 3, id: "demo" },
         },
       },
     },
     {
-      id: "inexistente",
+      id: "faltantes",
       etiqueta: "Datos faltantes",
       tipo: "incertidumbre",
       mensaje: "Prepara una publicación de la Blusa Lino Verano para Instagram.",
       demo: {
         C: {
           ok: true,
-          estado: "requiere_humano",
-          respuesta: "No encontré el pedido 1099. ¿Puedes verificar el número? Si está correcto, una " +
-            "persona del equipo revisará tu caso.",
-          citas: [],
+          estado: "sin_informacion",
+          respuesta: "La Blusa Lino Verano (SKU-108) queda en estado pendiente de información: le faltan el precio " +
+            "confirmado y la imagen autorizada [PM-05]. Cuando el catálogo tenga esos datos, preparo la publicación " +
+            "para Instagram.",
+          citas: ["PM-05"],
           pedido: null,
           solicitud: null,
           cola: null,
           razon: "",
           alerta: "",
           pasos: [
-            {
-              tipo: "herramienta",
-              nombre: "consultar_pedido",
-              detalle: "n_pedido = 1099 → no existe",
-            },
+            { tipo: "herramienta", nombre: "consultar_catalogo", detalle: "categoria = blusas → 1 prenda(s): Blusa Lino Verano" },
+            { tipo: "herramienta", nombre: "buscar_perfil_marca", detalle: "«precio imagen faltante» → PM-05" },
           ],
-          meta: {
-            version: "1.0",
-            backend: "demo",
-            ruta: "C",
-            modelo: "",
-            llamadas_modelo: 2,
-            id: "demo",
-          },
-        },
-        B: {
-          ok: true,
-          estado: "requiere_humano",
-          respuesta: "No encontré el pedido 1099. ¿Puedes verificar el número? Si está correcto, una " +
-            "persona del equipo revisará tu caso.",
-          citas: [],
-          pedido: null,
-          solicitud: {
-            es_consulta_tienda: true,
-            n_pedido: 1099,
-            motivo: "despacho",
-            urgencia: "baja",
-            resumen: "Pregunta en qué estado está el pedido 1099.",
-          },
-          cola: "revision_humana",
-          razon: "El pedido no existe en la tabla",
-          alerta: "",
-          pasos: [
-            {
-              tipo: "paso",
-              nombre: "extraer_datos",
-              detalle: "modelo → motivo = despacho · n_pedido = 1099",
-            },
-            {
-              tipo: "paso",
-              nombre: "validar_pedido",
-              detalle: "tabla de pedidos → no existe",
-            },
-            {
-              tipo: "paso",
-              nombre: "derivar_cola",
-              detalle: "regla → revision_humana",
-            },
-            {
-              tipo: "paso",
-              nombre: "responder_con_texto_fijo",
-              detalle: "sin modelo: mensaje preparado para este caso",
-            },
-          ],
-          meta: {
-            version: "1.0",
-            backend: "demo",
-            ruta: "B",
-            modelo: "",
-            llamadas_modelo: 1,
-            id: "demo",
-          },
+          meta: { version: "1.0", backend: "demo", ruta: "C", modelo: "", llamadas_modelo: 3, id: "demo" },
         },
       },
     },
@@ -444,7 +243,7 @@ window.MESA_CONFIG = {
         C: {
           ok: true,
           estado: "fuera_de_alcance",
-          respuesta: "Fuera de alcance: solo respondo consultas sobre Tienda Nimbo.",
+          respuesta: "Fuera de alcance: solo genero contenido orgánico y requiere aprobación humana.",
           citas: [],
           pedido: null,
           solicitud: null,
@@ -452,56 +251,7 @@ window.MESA_CONFIG = {
           razon: "",
           alerta: "",
           pasos: [],
-          meta: {
-            version: "1.0",
-            backend: "demo",
-            ruta: "C",
-            modelo: "",
-            llamadas_modelo: 1,
-            id: "demo",
-          },
-        },
-        B: {
-          ok: true,
-          estado: "fuera_de_alcance",
-          respuesta: "Fuera de alcance: solo respondo consultas sobre Tienda Nimbo.",
-          citas: [],
-          pedido: null,
-          solicitud: {
-            es_consulta_tienda: false,
-            n_pedido: null,
-            motivo: null,
-            urgencia: "baja",
-            resumen: "Pide un poema sobre el mar.",
-          },
-          cola: "fuera_de_alcance",
-          razon: "El mensaje no es una consulta a la tienda",
-          alerta: "",
-          pasos: [
-            {
-              tipo: "paso",
-              nombre: "extraer_datos",
-              detalle: "modelo → es_consulta_tienda = false",
-            },
-            {
-              tipo: "paso",
-              nombre: "derivar_cola",
-              detalle: "regla → fuera_de_alcance",
-            },
-            {
-              tipo: "paso",
-              nombre: "responder_con_texto_fijo",
-              detalle: "sin modelo: frase de fuera de alcance",
-            },
-          ],
-          meta: {
-            version: "1.0",
-            backend: "demo",
-            ruta: "B",
-            modelo: "",
-            llamadas_modelo: 1,
-            id: "demo",
-          },
+          meta: { version: "1.0", backend: "demo", ruta: "C", modelo: "", llamadas_modelo: 1, id: "demo" },
         },
       },
     },
@@ -512,11 +262,11 @@ window.MESA_CONFIG = {
     validacion: {
       titulo: "El mensaje no es válido",
       ayuda: "Escribe entre 3 y 1000 caracteres. Si pegaste un texto muy largo, deja solo lo " +
-        "esencial del mensaje del cliente.",
+        "esencial de la publicación que necesitas.",
     },
     acceso: {
       titulo: "Falta el código de acceso",
-      ayuda: "Este despliegue pide un código para proteger la cuota del modelo. Escríbelo en el " +
+      ayuda: "Este despliegue pide un código para proteger la cuota del modelo y tus redes. Escríbelo en el " +
         "campo «Código de acceso» y vuelve a intentar.",
     },
     limite: {
@@ -531,15 +281,13 @@ window.MESA_CONFIG = {
         "demostración.",
     },
     backend_acceso: {
-      titulo: "El backend rechazó las credenciales",
-      ayuda: "El token que envía Vercel no coincide con el que espera n8n o Make. Revisa el " +
-        "encabezado de autenticación en ambos lados y vuelve a desplegar si lo cambiaste.",
+      titulo: "Un servicio externo rechazó las credenciales",
+      ayuda: "Meta, Zernio u OpenAI rechazó la clave o el token. Revisa la variable de entorno " +
+        "correspondiente (META_PAGE_ACCESS_TOKEN, ZERNIO_API_KEY u OPENAI_API_KEY) y vuelve a desplegar.",
     },
     backend_url: {
       titulo: "No se encontró el backend",
-      ayuda: "La URL del webhook no existe o no está activa. En n8n, el workflow debe estar " +
-        "publicado y la URL ser la de producción (no la de prueba); en Make, el escenario " +
-        "debe estar activo.",
+      ayuda: "La dirección configurada del servicio no existe o no está activa.",
     },
     cuota_ia: {
       titulo: "Se agotó la cuota del modelo",
@@ -548,19 +296,18 @@ window.MESA_CONFIG = {
     },
     backend: {
       titulo: "El backend falló",
-      ayuda: "Revisa las ejecuciones del flujo (Executions en n8n, History en Make) para ver en " +
-        "qué nodo o módulo se rompió. El identificador de abajo sirve para encontrar esta " +
-        "solicitud en los registros de Vercel.",
+      ayuda: "El agente o un servicio de publicación falló. El identificador de abajo sirve para " +
+        "encontrar esta solicitud en los registros de Vercel (o en la terminal, si corre en local).",
     },
     timeout: {
       titulo: "El backend tardó demasiado",
-      ayuda: "El flujo no respondió a tiempo. Reintenta; si se repite, revisa en la plataforma si " +
-        "la ejecución quedó trabada o el modelo está lento.",
+      ayuda: "El agente no respondió a tiempo. Reintenta; si se repite, el modelo gratuito " +
+        "puede estar saturado: prueba más tarde o cambia MODEL_ID.",
     },
     respuesta_invalida: {
       titulo: "La respuesta no cumple el contrato",
-      ayuda: "El backend respondió, pero no con los campos del contrato v1. Revisa el último nodo " +
-        "o módulo, el que responde al webhook.",
+      ayuda: "El agente respondió, pero no con los campos del contrato v1. Revisa los registros " +
+        "del servidor con el identificador de abajo.",
     },
     red: {
       titulo: "No se pudo contactar al servidor",

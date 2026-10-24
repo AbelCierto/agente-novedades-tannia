@@ -27,7 +27,7 @@ META_IG_USER_ID        (solo si publicarás en Instagram)
 2. Acepta registrarte como desarrollador (*Get Started*) si es la primera vez.
 3. Ve a **My Apps → Create App**.
 4. Tipo de app: elige **Business**.
-5. Ponle un nombre (p. ej. `Mega Ofertas Tannia MVP`) y crea la app.
+5. Ponle un nombre (p. ej. `Novedades Tannia MVP`) y crea la app.
 
 Al terminar llegas al **Dashboard** de la app.
 

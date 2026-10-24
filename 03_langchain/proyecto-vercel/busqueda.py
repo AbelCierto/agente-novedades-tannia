@@ -1,11 +1,9 @@
-"""Búsqueda léxica (BM25) sobre las políticas de Tienda Nimbo.
+"""Búsqueda léxica (BM25) sobre el perfil de marca de Novedades Tannia.
 
 Por qué no hay embeddings aquí: en el PoC (LC-C) el índice vectorial usa un modelo de embeddings local de unos
-450 MB. Una función de Vercel no está pensada para cargar ese modelo en cada arranque. Con solo seis políticas,
+450 MB. Una función de Vercel no está pensada para cargar ese modelo en cada arranque. Con solo seis reglas de marca,
 una búsqueda por palabras clave (BM25) es más simple, más rápida y suficientemente buena. Si tu corpus crece,
 el siguiente paso es un índice persistente (pgvector, Qdrant) con embeddings por API.
-
-El mismo algoritmo está escrito en JavaScript en el workflow de n8n, para que ambos entreguen lo mismo.
 """
 from __future__ import annotations
 
@@ -24,7 +22,7 @@ PARADA = {
     "si", "no", "ya", "hay", "ser", "este", "esta", "esto", "ese", "esa", "puedo", "puede", "pueden", "quiero",
     "cual", "cuales", "cuando", "donde", "cuanto", "cuantos", "tiene", "tienen", "haber", "hace", "hacer",
     # palabras del dominio que aparecen en casi todos los documentos de marca y no ayudan a distinguirlos
-    "marca", "contenido", "prenda", "prendas", "tannia", "mega", "ofertas", "publicar", "publicacion",
+    "marca", "contenido", "prenda", "prendas", "tannia", "novedades", "publicar", "publicacion",
 }
 
 # Ampliación de consulta: palabras que el usuario usa y el perfil de marca no dice literalmente.

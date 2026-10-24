@@ -1,14 +1,16 @@
-# Alternativa LangChain · Mesa de ayuda Nimbo (ruta C: agente en código)
+# Novedades Tannia · agente de contenido para redes (LangChain, ruta C)
 
-Un agente de LangChain que corre dentro de la misma función de Vercel que sirve la pantalla. No hay webhook ni plataforma que
-importar: el agente es el código del proyecto. Tutorial completo: capítulo 6 de la guía. Esta página lo resume.
+Agente de LangChain que propone publicaciones para Instagram, Facebook y TikTok de **Novedades Tannia**, tienda de ropa para
+damas y caballeros. Usa el catálogo y las reglas de marca (PM-01 a PM-06), nunca inventa precio, stock ni tallas, y nada se
+publica sin aprobación humana. Tras aprobar, la publicación sale por Meta Graph API (Facebook e Instagram) y Zernio (TikTok),
+con una imagen generada por OpenAI.
 
 ## Qué hay en esta carpeta
 
 | Archivo | Para qué sirve |
 |---|---|
-| `probar_endpoint.py` | Prueba tu servidor (local o en Vercel) con los cuatro mensajes de ejemplo. Solo necesita Python 3.9 o superior. |
-| `proyecto-vercel/` | El proyecto completo: la pantalla (`public/`), el proxy (`app.py`) y el agente (`agente.py`, `busqueda.py`, `datos.py`). |
+| `probar_endpoint.py` | Prueba tu servidor (local o en Vercel) con los cuatro pedidos de ejemplo. No publica nada. Solo necesita Python 3.9 o superior. |
+| `proyecto-vercel/` | El proyecto completo: la pantalla (`public/`), el proxy (`app.py`), el agente (`agente.py`, `busqueda.py`, `datos.py`) y la publicación (`publicacion.py`, `publicacion_meta.py`, `imagen.py`). |
 
 ## Los siete pasos
 
@@ -35,8 +37,9 @@ Los pasos 1 a 3 dejan el agente funcionando **en tu computador**, sin GitHub ni 
 
 4. **Sube el contenido de `proyecto-vercel/` a GitHub**, sin `.env`. `app.py` y `public/` deben quedar en la raíz del repositorio.
 5. **Importa el repositorio en Vercel y despliega sin variables.** Debes ver «El servicio todavía no está configurado».
-6. **Agrega la clave y vuelve a desplegar.** En *Settings › Environment Variables* agrega `OPENROUTER_API_KEY` como *Secret* y usa
-   *Redeploy*. Opcionales: `ACCESS_CODE`, `MODEL_ID` y `MAX_POR_MINUTO` (capítulo 8).
+6. **Agrega las claves y vuelve a desplegar.** En *Settings › Environment Variables* agrega como *Secret* `OPENROUTER_API_KEY`,
+   `ACCESS_CODE` (obligatorio si activas la publicación), `ZERNIO_API_KEY`, `META_PAGE_ID`, `META_PAGE_ACCESS_TOKEN`,
+   `META_IG_USER_ID` y `OPENAI_API_KEY`, y usa *Redeploy*. Guía de Meta: `proyecto-vercel/COMO_CONECTAR_META.md`.
 7. **Verifica de punta a punta**: abre tu dirección pública y corre
 
    ```

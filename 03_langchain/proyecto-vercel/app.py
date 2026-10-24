@@ -1,6 +1,6 @@
-"""Mesa de ayuda Nimbo · proxy del MVP (FastAPI en Vercel).
+"""Novedades Tannia · proxy del MVP (FastAPI en Vercel).
 
-Esta función es lo único que ve el navegador. Cada vez que alguien pulsa «Analizar mensaje» hace, en orden:
+Esta función es lo único que ve el navegador. Cada vez que alguien pulsa «Generar propuesta» hace, en orden:
 
   1. Revisa el código de acceso (solo si definiste ACCESS_CODE en Vercel).
   2. Limita cuántas consultas seguidas puede hacer cada visitante.
@@ -38,11 +38,11 @@ MAX_POR_MINUTO = int(os.getenv("MAX_POR_MINUTO", "8"))   # consultas por minuto 
 # -----------------------------------------------------------------------------------------
 
 logging.basicConfig(level=logging.INFO, format="%(message)s")
-log = logging.getLogger("nimbo")
+log = logging.getLogger("tannia")
 # Las líneas del proxy salen por stdout: en los registros de Vercel lo que sale por stderr se marca como «error».
-if not any(getattr(h, "_nimbo", False) for h in log.handlers):
+if not any(getattr(h, "_tannia", False) for h in log.handlers):
     _salida = logging.StreamHandler(sys.stdout)   # StreamHandler vacía el búfer en cada línea
-    _salida._nimbo = True
+    _salida._tannia = True
     _salida.setFormatter(logging.Formatter("%(message)s"))
     log.addHandler(_salida)
 log.propagate = False

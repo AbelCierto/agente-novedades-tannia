@@ -1,5 +1,5 @@
 /* ============================================================================
-   Mesa de ayuda Nimbo · lógica de la interfaz (contrato v1)
+   Novedades Tannia · lógica de la interfaz (contrato v1)
 
    Qué hace este archivo, en orden:
      1. Lee la configuración (config.js) y prepara la pantalla.
@@ -159,8 +159,8 @@
   function vistaVacia() {
     mostrar(el('div', { clase: 'vacio' },
       el('div', { clase: 'vacio-icono' }, icono('cola')),
-      el('h3', null, 'Aquí aparecerá el análisis'),
-      el('p', null, 'Elige un ejemplo o pega un mensaje y pulsa «Analizar mensaje». Verás la respuesta sugerida, las políticas en que se apoya y lo que hizo el sistema para llegar a ella.')));
+      el('h3', null, 'Aquí aparecerá la propuesta'),
+      el('p', null, 'Elige un ejemplo o describe la publicación y pulsa «Generar propuesta». Verás el texto para cada red, las reglas de marca en que se apoya y lo que hizo el sistema para llegar a él.')));
   }
 
   function vistaCargando() {
@@ -223,21 +223,6 @@
   function tituloPolitica(id) {
     const p = (C.politicas || {})[id];
     return p ? p.titulo : '';
-  }
-
-  // Convierte «[POL-01]» en una pequeña etiqueta; el resto del texto queda como texto.
-  function conCitas(texto) {
-    const partes = [];
-    const re = /\[?\b(POL-\d{2})\b\]?/g;
-    let ultimo = 0;
-    let m;
-    while ((m = re.exec(texto)) !== null) {
-      if (m.index > ultimo) partes.push(texto.slice(ultimo, m.index));
-      partes.push(el('span', { clase: 'cita', title: tituloPolitica(m[1]) }, m[1]));
-      ultimo = m.index + m[0].length;
-    }
-    if (ultimo < texto.length) partes.push(texto.slice(ultimo));
-    return partes;
   }
 
   async function copiarTexto(texto, boton) {
@@ -478,14 +463,14 @@
     const items = citas.map((id) => {
       const p = (C.politicas || {})[id];
       if (!p) {
-        return el('li', { clase: 'politica politica-fila' }, el('span', { clase: 'politica-id' }, id), el('span', null, 'Política no incluida en config.js'));
+        return el('li', { clase: 'politica politica-fila' }, el('span', { clase: 'politica-id' }, id), el('span', null, 'Regla no incluida en config.js'));
       }
       return el('li', null, el('details', { clase: 'politica' },
         el('summary', null, el('span', { clase: 'politica-id' }, id), el('span', null, p.titulo)),
         el('p', { clase: 'politica-texto' }, p.texto)));
     });
     return el('section', { clase: 'bloque', 'aria-labelledby': 'h-politicas' },
-      el('h3', { id: 'h-politicas' }, icono('politica'), 'Políticas citadas'),
+      el('h3', { id: 'h-politicas' }, icono('politica'), 'Reglas de marca citadas'),
       el('ul', { clase: 'politicas' }, ...items));
   }
 
@@ -654,7 +639,7 @@
 
   function fijarCargando(activo) {
     $('enviar').setAttribute('aria-disabled', String(activo));   // aria-disabled y no «disabled»: así el foco del teclado no se pierde
-    $('enviar-texto').textContent = activo ? 'Analizando…' : 'Analizar mensaje';
+    $('enviar-texto').textContent = activo ? 'Generando…' : 'Generar propuesta';
     $('resultado').setAttribute('aria-busy', String(activo));
     if (!activo) {
       estado.temporizadores.forEach((t) => window.clearTimeout(t));
@@ -685,7 +670,7 @@
     estado.enCurso = { control };
     fijarCargando(true);
     vistaCargando();
-    anunciar('Analizando el mensaje');
+    anunciar('Generando la propuesta');
     const inicio = performance.now();
     const datos = estado.demo ? await analizarDemo(mensaje, control) : await analizarReal(mensaje, control);
     const ms = performance.now() - inicio;
@@ -701,7 +686,7 @@
       mostrar(vistaResultado(datos, ms));
       const nCitas = Array.isArray(datos.citas) ? datos.citas.length : 0;
       const nombreEstado = (((C.etiquetas && C.etiquetas.estados) || {})[datos.estado] || {}).titulo || humanizar(datos.estado || 'respondida');
-      anunciar(`Análisis listo: ${nombreEstado}. ${nCitas} ${nCitas === 1 ? 'política citada' : 'políticas citadas'}.`);
+      anunciar(`Propuesta lista: ${nombreEstado}. ${nCitas} ${nCitas === 1 ? 'regla citada' : 'reglas citadas'}.`);
     } else if (datos.error && datos.error.codigo === 'cancelado') {
       vistaInfo('Consulta cancelada', 'La pantalla dejó de esperar. Si ya había salido hacia el backend, puede que él siga trabajando: revisa sus ejecuciones si necesitas confirmarlo.');
       anunciar('Consulta cancelada');

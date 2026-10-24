@@ -1,4 +1,4 @@
-"""Contrato de interfaz v1 del MVP «Mesa de ayuda Nimbo».
+"""Contrato de interfaz v1 del MVP «Novedades Tannia».
 
 Este módulo es la frontera entre el navegador y el backend (n8n, Make o LangChain).
 Hace dos cosas, y solo dos:
@@ -9,7 +9,7 @@ Hace dos cosas, y solo dos:
 
 Regla de diseño: tolerante con lo que recibe del backend (acepta varias formas) y estricto con lo
 que entrega al navegador (siempre la misma forma). No contiene lógica de negocio: las reglas de
-Tienda Nimbo viven en el backend.
+Novedades Tannia viven en el backend.
 """
 from __future__ import annotations
 

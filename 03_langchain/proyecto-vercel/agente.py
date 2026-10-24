@@ -1,4 +1,4 @@
-"""Agente de contenido de Mega Ofertas Tannia con LangChain (ruta C del curso).
+"""Agente de contenido de Novedades Tannia con LangChain (ruta C del curso).
 
 Un modelo de lenguaje con dos herramientas. En cada consulta el MODELO decide qué herramienta usar y cuándo
 responder; el código solo define las herramientas, pone límites y traduce el resultado al contrato de la pantalla.

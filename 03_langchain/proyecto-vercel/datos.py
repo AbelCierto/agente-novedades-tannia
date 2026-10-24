@@ -1,4 +1,4 @@
-"""Datos del caso Mega Ofertas Tannia (equipo Hypecloset). EDITA AQUÍ para tu caso.
+"""Datos del caso Novedades Tannia (equipo Hypecloset). EDITA AQUÍ para tu caso.
 
 Mismos datos y mismo prompt que el PoC LC-C (notebook data-previo/LC_C_agente.ipynb), para que
 PoC y MVP digan lo mismo. El agente genera contenido para Instagram, Facebook y TikTok a partir del
@@ -14,8 +14,8 @@ POLITICAS = [
         "id": "PM-01",
         "titulo": "Identidad de marca",
         "texto": (
-            "Mega Ofertas Tannia es una tienda de ropa con precios accesibles y ofertas frecuentes para "
-            "toda la familia. El tono es cercano, entusiasta y directo, tratando de tú y destacando siempre "
+            "Novedades Tannia es una tienda de ropa para damas y caballeros con precios accesibles y novedades "
+            "frecuentes. El tono es cercano, entusiasta y directo, tratando de tú y destacando siempre "
             "el ahorro. Evita promesas exageradas, precios inventados y lenguaje ofensivo. Solo se promociona "
             "ropa disponible en el catálogo y toda pieza queda sujeta a la aprobación del encargado antes de publicarse."
         ),
@@ -61,7 +61,7 @@ POLITICAS = [
         "id": "PM-06",
         "titulo": "Fuera de alcance",
         "texto": (
-            "Mega Ofertas Tannia usa este asistente solo para generar contenido orgánico (no pagado). El agente "
+            "Novedades Tannia usa este asistente solo para generar contenido orgánico (no pagado). El agente "
             "no administra campañas de anuncios pagados, no asigna presupuestos publicitarios, no elige audiencias, "
             "no responde comentarios ni mensajes y no publica ni programa nada sin la aprobación de una persona autorizada."
         ),
@@ -85,13 +85,13 @@ PRODUCTOS = [
 
 # La descripción de cada herramienta es su interfaz: el modelo decide cuándo usarla leyendo este texto.
 DESC_BUSCAR_PERFIL = (
-    "Busca en el perfil de marca y las reglas de contenido de Mega Ofertas Tannia (identidad, tono y reglas por "
+    "Busca en el perfil de marca y las reglas de contenido de Novedades Tannia (identidad, tono y reglas por "
     "red social: Instagram, Facebook y TikTok). Úsala para adaptar el texto y conocer qué está fuera de alcance. "
     "Recibe una consulta en texto y devuelve los fragmentos más relevantes con su código (PM-01, PM-02, ...)."
 )
 
 DESC_CONSULTAR_CATALOGO = (
-    "Consulta el catálogo de Mega Ofertas Tannia para elegir qué prendas promocionar. Parámetros: 'categoria' "
+    "Consulta el catálogo de Novedades Tannia para elegir qué prendas promocionar. Parámetros: 'categoria' "
     "filtra por categoría exacta (por ejemplo \"casacas\", \"poleras\", \"blusas\"); vacío = todas. 'solo_disponibles' "
     "en True devuelve solo prendas con stock mayor a 0. Para cada prenda devuelve id, nombre, categoría, precio, "
     "precio_oferta (calculado por código cuando hay descuento), stock, tallas, colores, promoción y 'campos_faltantes' "
@@ -100,7 +100,7 @@ DESC_CONSULTAR_CATALOGO = (
 
 # Instrucciones del agente (prompt del sistema).
 PROMPT_AGENTE = """\
-Eres el asistente de contenido publicitario de Mega Ofertas Tannia, una tienda de ropa con precios accesibles que vende por Instagram, Facebook y TikTok.
+Eres el asistente de contenido publicitario de Novedades Tannia, una tienda de ropa para damas y caballeros con precios accesibles que vende por Instagram, Facebook y TikTok.
 
 Herramientas:
 - consultar_catalogo: lista prendas del catálogo con su precio, precio_oferta (ya calculado por código cuando hay descuento), stock, tallas, colores, promoción y una lista 'campos_faltantes'. Úsala SIEMPRE para elegir qué promocionar; nunca inventes productos.
