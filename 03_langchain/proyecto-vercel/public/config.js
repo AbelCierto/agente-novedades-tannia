@@ -284,9 +284,9 @@ window.MESA_CONFIG = {
         "esencial de la publicación que necesitas.",
     },
     acceso: {
-      titulo: "Falta el código de acceso",
-      ayuda: "Este despliegue pide un código para proteger la cuota del modelo y tus redes. Escríbelo en el " +
-        "campo «Código de acceso» y vuelve a intentar.",
+      titulo: "Acceso denegado",
+      ayuda: "Inicia sesión con tu cuenta (o escribe el código de acceso, si este despliegue lo usa). " +
+        "Publicar requiere el rol de admin.",
     },
     limite: {
       titulo: "Demasiadas solicitudes seguidas",

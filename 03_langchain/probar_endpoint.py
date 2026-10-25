@@ -4,6 +4,7 @@
   En tu computador:   python probar_endpoint.py http://localhost:8000 --pausa 3
   En Vercel:          python probar_endpoint.py https://tu-proyecto.vercel.app --pausa 3
   Con código:         python probar_endpoint.py https://tu-proyecto.vercel.app --codigo-acceso EL_CODIGO
+  Con login:          $env:PROBADOR_CLAVE="..."; python probar_endpoint.py https://tu-proyecto.vercel.app --usuario editor@correo.com
 
 Envía los cuatro pedidos de ejemplo (o el tuyo con --mensaje) a /api/triage e informa, para cada uno, qué respondió
 el agente y si cumple el contrato. No publica nada en redes. Solo usa la biblioteca estándar de Python 3.9 o superior.
@@ -84,6 +85,24 @@ def llamar(url, cuerpo, cabeceras, espera):
     return status, datos, time.time() - t0, texto
 
 
+def iniciar_sesion(url, usuario, clave):
+    """Obtiene un ID token de Firebase con la clave web que publica /api/health. Nunca imprime el token."""
+    base = f"{urlparse(url).scheme}://{urlparse(url).netloc}"
+    with urllib.request.urlopen(base + "/api/health", timeout=15) as r:
+        salud = json.loads(r.read())
+    api_key = (salud.get("auth") or {}).get("api_key")
+    if not api_key:
+        sys.exit("Este despliegue no usa login de Firebase: quita --usuario.")
+    cuerpo = json.dumps({"email": usuario, "password": clave, "returnSecureToken": True}).encode("utf-8")
+    req = urllib.request.Request("https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=" + api_key,
+                                 data=cuerpo, method="POST", headers={"Content-Type": "application/json"})
+    try:
+        with urllib.request.urlopen(req, timeout=15) as r:
+            return json.loads(r.read())["idToken"]
+    except urllib.error.HTTPError:
+        sys.exit("No se pudo iniciar sesión en Firebase: revisa --usuario y --clave.")
+
+
 def revisar_contrato(d):
     """Problemas de forma de una respuesta v1 (la que entrega el proxy de Vercel)."""
     p = []
@@ -135,6 +154,8 @@ def main():
     ap.add_argument("--token", default=os.environ.get("TOKEN_BACKEND", ""), help="secreto del webhook (o variable TOKEN_BACKEND)")
     ap.add_argument("--cabecera", default="x-api-key", help="encabezado del secreto: x-api-key (n8n) o x-make-apikey (Make)")
     ap.add_argument("--codigo-acceso", default=os.environ.get("CODIGO_ACCESO", ""), help="código de acceso del despliegue (ACCESS_CODE)")
+    ap.add_argument("--usuario", default=os.environ.get("PROBADOR_USUARIO", ""), help="correo de Firebase (si el despliegue usa login)")
+    ap.add_argument("--clave", default=os.environ.get("PROBADOR_CLAVE", ""), help="contraseña de Firebase (mejor por la variable PROBADOR_CLAVE)")
     ap.add_argument("--mensaje", help="envía este mensaje en vez de los cuatro ejemplos")
     ap.add_argument("--espera", type=float, default=130, help="segundos de espera por respuesta (por defecto 130)")
     ap.add_argument("--pausa", type=float, default=0, help="segundos de pausa entre mensajes (útil con modelos gratuitos)")
@@ -155,6 +176,8 @@ def main():
         cabeceras[a.cabecera] = a.token
     if modo == "proxy" and a.codigo_acceso:
         cabeceras["x-access-code"] = a.codigo_acceso
+    if modo == "proxy" and a.usuario:
+        cabeceras["Authorization"] = "Bearer " + iniciar_sesion(url, a.usuario, a.clave)
     if modo == "webhook" and "webhook-test" in url:
         print("Aviso: esta es la URL de PRUEBA de n8n; solo responde mientras el editor escucha. Usa la de producción.\n")
 

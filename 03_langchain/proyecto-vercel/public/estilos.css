@@ -166,7 +166,7 @@ select { padding: .4rem .6rem; border: 1px solid var(--borde-fuerte); border-rad
 .ejemplo-titulo { font-size: .875rem; font-weight: 600; }
 .ejemplo-tipo { font-size: .75rem; color: var(--tinta-3); line-height: 1.3; }
 
-textarea, input[type="password"], input[type="text"] {
+textarea, input[type="password"], input[type="text"], input[type="email"] {
   display: block; width: 100%; padding: .7rem .85rem; border: 1px solid var(--borde-fuerte); border-radius: var(--radio-s);
   background: var(--superficie); line-height: 1.5;
 }
@@ -183,6 +183,10 @@ textarea:focus-visible, input:focus-visible { outline-offset: 0; border-color: v
 .error-campo { margin-top: .5rem; font-size: .875rem; font-weight: 600; color: var(--error); }
 .bloque-codigo { margin-top: 1rem; }
 .bloque-codigo .ayuda { margin-top: .4rem; }
+.form-login .etiqueta { margin-top: .9rem; }
+.form-login .ayuda { margin-bottom: .2rem; }
+.sesion { display: flex; align-items: center; gap: .6rem; flex-wrap: wrap; font-size: .875rem; }
+.sesion-usuario { font-weight: 600; }
 .campos-solicitud { border: 0; padding: 0; margin: 1rem 0 0; }
 .campos-solicitud .publicar-redes { margin: 0; }
 .campos-fila { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 3fr); gap: .8rem; margin-top: .9rem; }

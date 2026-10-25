@@ -26,6 +26,7 @@ from typing import Any
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
+import auth
 import imagen
 import publicacion
 import publicacion_meta
@@ -91,6 +92,17 @@ def revisar_acceso(request: Request) -> None:
         raise ErrorContrato("acceso", "El código de acceso no es correcto.", 401, "falta o no coincide x-access-code")
 
 
+def autorizar(request: Request, rol_minimo: str) -> dict | None:
+    """Con Firebase configurado exige sesión y rol; si no, usa ACCESS_CODE. Publicar nunca queda abierto."""
+    if auth.configurado():
+        return auth.exigir(request, rol_minimo)
+    revisar_acceso(request)
+    if rol_minimo == "admin" and not os.getenv("ACCESS_CODE", "").strip():
+        raise ErrorContrato("sin_configurar", "La publicación está desactivada: falta configurar el login (Firebase) o ACCESS_CODE.", 503,
+                            "define FIREBASE_PROJECT_ID y FIREBASE_WEB_API_KEY, o ACCESS_CODE")
+    return None
+
+
 # ----------------------------------------------------------------------------- 2. límite por visitante
 # Es un límite «de mejor esfuerzo»: la memoria es de cada instancia de la función, y Vercel puede crear varias.
 # Sirve para frenar errores (un bucle, un botón pulsado mil veces), no a un atacante decidido.
@@ -154,10 +166,25 @@ async def llamar_backend(mensaje: str) -> Any:
 # ----------------------------------------------------------------------------- rutas
 @app.get("/api/health")
 async def salud() -> JSONResponse:
-    """La pantalla pregunta aquí si hay backend y si pide código. No revela ningún secreto."""
+    """La pantalla pregunta aquí si hay backend y cómo se inicia sesión. No revela ningún secreto."""
+    firebase = auth.configurado()
     return responder({"ok": True, "version": VERSION, "backend": BACKEND, "ruta": RUTA,
-                      "configurado": configurado(), "requiere_codigo": bool(os.getenv("ACCESS_CODE", "").strip()),
+                      "configurado": configurado(),
+                      "requiere_codigo": not firebase and bool(os.getenv("ACCESS_CODE", "").strip()),
+                      "auth": {"proveedor": "firebase", "api_key": auth.api_key_web()} if firebase else None,
                       "publicar": publicacion.configurado() or publicacion_meta.configurado()})
+
+
+@app.get("/api/yo")
+async def yo(request: Request) -> JSONResponse:
+    """Devuelve el correo y el rol del usuario con sesión (la pantalla decide qué mostrar; el servidor igual lo exige)."""
+    try:
+        limitar(ip_de(request))
+        if not auth.configurado():
+            raise ErrorContrato("sin_configurar", "El login no está configurado.", 503, "falta FIREBASE_PROJECT_ID o FIREBASE_WEB_API_KEY")
+        return responder({"ok": True, **auth.exigir(request, "editor")})
+    except ErrorContrato as e:
+        return responder(respuesta_error(e, uuid.uuid4().hex[:8], BACKEND), e.status)
 
 
 @app.post("/api/triage")
@@ -165,7 +192,7 @@ async def triage(request: Request) -> JSONResponse:
     inicio = time.perf_counter()
     id_solicitud = uuid.uuid4().hex[:8]
     try:
-        revisar_acceso(request)
+        autorizar(request, "editor")
         limitar(ip_de(request))
         cuerpo = await leer_json(request)
         # "solicitud" es la entrada JSON del pasaporte; "mensaje" (texto libre) se mantiene por compatibilidad.
@@ -206,7 +233,7 @@ async def generar_imagen(request: Request) -> JSONResponse:
     inicio = time.perf_counter()
     id_solicitud = uuid.uuid4().hex[:8]
     try:
-        revisar_acceso(request)
+        autorizar(request, "admin")
         limitar(ip_de(request))
         cuerpo = await leer_json(request)
         descripcion = texto_plano((cuerpo or {}).get("descripcion") or "") if isinstance(cuerpo, dict) else ""
@@ -232,7 +259,7 @@ async def publicar(request: Request) -> JSONResponse:
     inicio = time.perf_counter()
     id_solicitud = uuid.uuid4().hex[:8]
     try:
-        revisar_acceso(request)
+        usuario = autorizar(request, "admin")
         limitar(ip_de(request))
         cuerpo = await leer_json(request)
         if not isinstance(cuerpo, dict):
@@ -240,7 +267,8 @@ async def publicar(request: Request) -> JSONResponse:
         resultado = await despachar_publicacion(cuerpo.get("red"), cuerpo.get("contenido"), cuerpo.get("imagen_url"))
         salida = {"ok": True, "publicacion": resultado,
                   "meta": {"version": VERSION, "backend": BACKEND, "id": id_solicitud, "latencia_ms": milisegundos(inicio)}}
-        registrar(id=id_solicitud, backend=BACKEND, ok=True, accion="publicar",
+        # Se registra quién aprobó (auditoría), nunca el contenido publicado.
+        registrar(id=id_solicitud, backend=BACKEND, ok=True, accion="publicar", publicado_por=(usuario or {}).get("email"),
                   red=resultado.get("red"), borrador=resultado.get("borrador"), ms=milisegundos(inicio))
         return responder(salida)
     except ErrorContrato as e:

@@ -36,6 +36,7 @@
     rutaDemo: rutaUrl === 'B' ? 'B' : 'C',
     salud: null,
     codigo: leer('mesa_codigo'),
+    sesion: null,
     enCurso: null,
     ultimaSolicitud: null,
     temporizadores: [],
@@ -47,6 +48,124 @@
   }
   function guardar(clave, valor) {
     try { if (valor) sessionStorage.setItem(clave, valor); else sessionStorage.removeItem(clave); } catch (_) { /* sin almacenamiento: no pasa nada */ }
+  }
+
+  /* ------------------------------------------------------------------ sesión (Firebase Auth por REST, sin SDK) */
+  const SESION_CLAVE = 'tannia_sesion';
+  const usaFirebase = () => !!(estado.salud && estado.salud.auth && estado.salud.auth.proveedor === 'firebase');
+
+  function leerSesion() {
+    try { return JSON.parse(leer(SESION_CLAVE) || 'null'); } catch (_) { return null; }
+  }
+  function guardarSesion(s) {
+    estado.sesion = s;
+    guardar(SESION_CLAVE, s ? JSON.stringify(s) : '');
+  }
+
+  async function tokenVigente() {
+    const s = estado.sesion;
+    if (!s) return null;
+    if (Date.now() < s.expira - 5 * 60 * 1000) return s.idToken;
+    try {
+      const res = await fetch('https://securetoken.googleapis.com/v1/token?key=' + encodeURIComponent(estado.salud.auth.api_key), {
+        method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({ grant_type: 'refresh_token', refresh_token: s.refreshToken }),
+      });
+      const d = await res.json();
+      if (!res.ok || !d.id_token) throw new Error('refresh');
+      guardarSesion({ ...s, idToken: d.id_token, refreshToken: d.refresh_token, expira: Date.now() + Number(d.expires_in || 3600) * 1000 });
+      return estado.sesion.idToken;
+    } catch (_) {
+      cerrarSesion('Tu sesión expiró. Vuelve a iniciar sesión.');
+      return null;
+    }
+  }
+
+  async function cabecerasApi() {
+    const h = { 'Content-Type': 'application/json', Accept: 'application/json' };
+    if (usaFirebase()) {
+      const t = await tokenVigente();
+      if (t) h.Authorization = 'Bearer ' + t;
+    } else if (estado.codigo) {
+      h['x-access-code'] = estado.codigo;
+    }
+    return h;
+  }
+
+  function errorLogin(texto) {
+    $('login-error').textContent = texto || '';
+    $('login-error').hidden = !texto;
+  }
+
+  function mensajeLogin(codigo) {
+    const c = String(codigo || '');
+    if (/INVALID_LOGIN_CREDENTIALS|INVALID_PASSWORD|EMAIL_NOT_FOUND|INVALID_EMAIL/.test(c)) return 'Correo o contraseña incorrectos.';
+    if (/TOO_MANY_ATTEMPTS/.test(c)) return 'Demasiados intentos. Espera unos minutos.';
+    if (/USER_DISABLED/.test(c)) return 'Tu cuenta está desactivada.';
+    return 'No se pudo iniciar sesión.';
+  }
+
+  function mostrarSesion() {
+    const conSesion = !!(estado.sesion && estado.sesion.rol);
+    $('form-login').hidden = conSesion;
+    $('formulario').hidden = !conSesion;
+    $('sesion').hidden = !conSesion;
+    $('sesion-usuario').textContent = conSesion
+      ? estado.sesion.email + ' · ' + (estado.sesion.rol === 'admin' ? 'Admin' : 'Editor') : '';
+  }
+
+  function cerrarSesion(motivo) {
+    guardarSesion(null);
+    if (!usaFirebase()) return;
+    mostrarSesion();
+    vistaVacia();
+    errorLogin(motivo || '');
+  }
+
+  // Pide al servidor el rol del usuario: así también se valida el token recién obtenido o guardado.
+  async function cargarUsuario() {
+    try {
+      const res = await fetch('/api/yo', { headers: await cabecerasApi(), cache: 'no-store' });
+      const d = await res.json();
+      if (!d.ok) throw new Error((d.error && d.error.mensaje) || '');
+      guardarSesion({ ...estado.sesion, email: d.email, rol: d.rol });
+      return true;
+    } catch (e) {
+      cerrarSesion((e && e.message) || 'No se pudo validar tu sesión.');
+      return false;
+    }
+  }
+
+  async function iniciarSesion(evento) {
+    evento.preventDefault();
+    const email = $('login-email').value.trim();
+    const clave = $('login-clave').value;
+    errorLogin('');
+    if (!email || !clave) { errorLogin('Escribe tu correo y tu contraseña.'); return; }
+    $('login-enviar').setAttribute('aria-disabled', 'true');
+    try {
+      const res = await fetch('https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=' + encodeURIComponent(estado.salud.auth.api_key), {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password: clave, returnSecureToken: true }),
+      });
+      const d = await res.json();
+      if (!res.ok || !d.idToken) { errorLogin(mensajeLogin(d.error && d.error.message)); return; }
+      $('login-clave').value = '';
+      guardarSesion({ idToken: d.idToken, refreshToken: d.refreshToken, expira: Date.now() + Number(d.expiresIn || 3600) * 1000, email: d.email });
+      if (await cargarUsuario()) {
+        mostrarSesion();
+        anunciar('Sesión iniciada como ' + estado.sesion.rol);
+      }
+    } catch (_) {
+      errorLogin('No se pudo conectar con el servicio de inicio de sesión.');
+    } finally {
+      $('login-enviar').removeAttribute('aria-disabled');
+    }
+  }
+
+  function puedePublicar() {
+    if (!estado.salud || !estado.salud.publicar) return false;
+    return !usaFirebase() || !!(estado.sesion && estado.sesion.rol === 'admin');
   }
 
   // el('div', {clase: 'x', title: 'y'}, 'texto', otroNodo): crea un elemento. Los textos entran como nodos de texto.
@@ -213,7 +332,9 @@
       el('p', { clase: 'res-error-tecnico' }, tecnico),
       acciones.length ? el('div', { clase: 'acciones' }, ...acciones) : null));
 
-    if (codigo === 'acceso') {
+    if (codigo === 'acceso' && usaFirebase()) {
+      if (/token|Authorization/.test(e.detalle || '')) cerrarSesion(e.mensaje);
+    } else if (codigo === 'acceso') {
       $('bloque-codigo').hidden = false;
       $('codigo').setAttribute('aria-invalid', 'true');
       $('codigo').focus();
@@ -352,8 +473,7 @@
   }
 
   async function enviarPublicacion(red, contenido, imagenUrl) {
-    const cabeceras = { 'Content-Type': 'application/json', Accept: 'application/json' };
-    if (estado.codigo) cabeceras['x-access-code'] = estado.codigo;
+    const cabeceras = await cabecerasApi();
     const payload = { red, contenido };
     if (imagenUrl) payload.imagen_url = imagenUrl;
     const res = await fetch(ENDPOINT_PUBLICAR, { method: 'POST', headers: cabeceras, body: JSON.stringify(payload), cache: 'no-store' });
@@ -364,8 +484,7 @@
   }
 
   async function generarImagen(descripcion) {
-    const cabeceras = { 'Content-Type': 'application/json', Accept: 'application/json' };
-    if (estado.codigo) cabeceras['x-access-code'] = estado.codigo;
+    const cabeceras = await cabecerasApi();
     const res = await fetch('/api/imagen', { method: 'POST', headers: cabeceras, body: JSON.stringify({ descripcion }), cache: 'no-store' });
     const crudo = await res.text();
     let datos = null;
@@ -558,7 +677,7 @@
       d.razon ? el('p', { clase: 'res-explica' }, el('strong', null, 'Razón: '), d.razon) : null,
       d.alerta ? el('div', { clase: 'alerta-res', role: 'note' }, icono('alerta'), el('p', null, el('strong', null, 'Alerta: '), d.alerta)) : null,
       respuesta ? bloqueRespuesta(respuesta) : null,
-      (estadoOk === 'respondida' && respuesta) ? bloquePublicar(respuesta) : null,
+      (estadoOk === 'respondida' && respuesta && puedePublicar()) ? bloquePublicar(respuesta) : null,
       citas.length ? bloquePoliticas(citas) : null,
     ];
     const tarjetas = [tarjetaPedido(d.pedido), tarjetaSolicitud(d.solicitud)].filter(Boolean);
@@ -577,8 +696,7 @@
     let vencio = false;
     const reloj = window.setTimeout(() => { vencio = true; control.abort(); }, C.timeoutMs);
     try {
-      const cabeceras = { 'Content-Type': 'application/json', Accept: 'application/json' };
-      if (estado.codigo) cabeceras['x-access-code'] = estado.codigo;
+      const cabeceras = await cabecerasApi();
       const res = await fetch(C.endpoint, { method: 'POST', headers: cabeceras, body: JSON.stringify({ solicitud }), signal: control.signal, cache: 'no-store' });
       const crudo = await res.text();
       let datos = null;
@@ -758,6 +876,11 @@
         ponerConexion('conectado', 'Conectado · ' + nombre, datos.ruta);
       }
       if (datos.requiere_codigo) $('bloque-codigo').hidden = false;
+      if (usaFirebase()) {
+        guardarSesion(leerSesion());
+        if (estado.sesion) await cargarUsuario();
+        mostrarSesion();
+      }
     } catch (_) {
       ponerConexion('sin-backend', 'Sin backend (solo interfaz)');
       mostrarAviso('info',
@@ -781,6 +904,8 @@
     actualizarContador();
 
     $('formulario').addEventListener('submit', enviar);
+    $('form-login').addEventListener('submit', iniciarSesion);
+    $('salir').addEventListener('click', () => { cerrarSesion(); anunciar('Sesión cerrada'); });
     $('mensaje').addEventListener('input', () => {
       actualizarContador();
       errorCampo('');

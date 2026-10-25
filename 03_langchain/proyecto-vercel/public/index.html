@@ -51,6 +51,10 @@
       <span class="punto" aria-hidden="true"></span>
       <span id="conexion-texto">Comprobando conexión…</span>
     </p>
+    <div id="sesion" class="sesion" hidden>
+      <span id="sesion-usuario" class="sesion-usuario"></span>
+      <button type="button" id="salir" class="boton boton-secundario boton-mini">Cerrar sesión</button>
+    </div>
   </header>
 
   <div id="aviso" class="aviso" role="status" hidden></div>
@@ -58,6 +62,18 @@
   <main class="contenido">
     <section class="panel panel-entrada" id="entrada" aria-labelledby="t-entrada">
       <h2 id="t-entrada" class="panel-titulo">Pedido de contenido</h2>
+
+      <form id="form-login" class="form-login" hidden novalidate>
+        <p class="ayuda">Inicia sesión con la cuenta que te asignó el administrador de Novedades Tannia.</p>
+        <label for="login-email" class="etiqueta">Correo</label>
+        <input id="login-email" type="email" autocomplete="username" maxlength="200" spellcheck="false">
+        <label for="login-clave" class="etiqueta">Contraseña</label>
+        <input id="login-clave" type="password" autocomplete="current-password" maxlength="200">
+        <p id="login-error" class="error-campo" role="alert" hidden></p>
+        <div class="acciones">
+          <button type="submit" id="login-enviar" class="boton boton-primario">Iniciar sesión</button>
+        </div>
+      </form>
 
       <form id="formulario" novalidate>
         <div class="ejemplos">

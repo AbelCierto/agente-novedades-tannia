@@ -5,3 +5,4 @@ langchain-openai==1.6.7
 langgraph==1.2.13
 openai==3.24.0
 pydantic==2.13.5
+PyJWT[crypto]==2.13.0
