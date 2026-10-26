@@ -217,12 +217,12 @@ async def triage(request: Request) -> JSONResponse:
 
 
 async def despachar_publicacion(red: str, contenido: str, imagen_url: str | None = None) -> Any:
-    """Enruta cada red a su backend de publicación: TikTok → Zernio; Facebook/Instagram → Meta."""
+    """Enruta cada red a su backend de publicación: TikTok/Facebook → Zernio; Instagram → Meta."""
     red_norm = (red or "").strip().lower()
     contenido = texto_plano(contenido or "")   # las redes reciben texto plano, no markdown
-    if red_norm == "tiktok":
+    if red_norm in ("tiktok", "facebook"):
         return await asyncio.to_thread(publicacion.publicar, red_norm, contenido, imagen_url)
-    if red_norm in ("facebook", "instagram"):
+    if red_norm == "instagram":
         return await asyncio.to_thread(publicacion_meta.publicar, red_norm, contenido, imagen_url)
     raise ErrorContrato("validacion", "Red no soportada.", 400, "usa tiktok, facebook o instagram")
 

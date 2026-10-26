@@ -22,8 +22,8 @@ from contrato import ErrorContrato, limpiar_texto
 ZERNIO_API = "https://zernio.com/api/v1"
 TIMEOUT_S = 30
 
-# En el MVP híbrido, Zernio solo maneja TikTok; Facebook e Instagram van por Meta (publicacion_meta.py).
-REDES_VALIDAS = ("tiktok",)
+# Zernio maneja TikTok y Facebook; Instagram sigue usando Meta Graph API.
+REDES_VALIDAS = ("tiktok", "facebook")
 MAX_CONTENIDO = 2200
 
 
@@ -104,7 +104,7 @@ def _cuenta_id(perfil_id: str, red: str) -> str:
 
 
 def publicar(red: str, contenido: str, imagen_url: str | None = None) -> dict[str, Any]:
-    """Publica un contenido ya aprobado (TikTok). Devuelve {red, id, estado, borrador}."""
+    """Publica un contenido ya aprobado en TikTok o Facebook. Devuelve {red, id, estado, borrador}."""
     red = (red or "").strip().lower()
     if red not in REDES_VALIDAS:
         raise ErrorContrato("validacion", "Red no soportada.", 400, f"usa una de: {', '.join(REDES_VALIDAS)}")

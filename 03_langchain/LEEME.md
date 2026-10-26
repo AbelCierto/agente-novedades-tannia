@@ -29,6 +29,10 @@ Los pasos 1 a 3 dejan el agente funcionando **en tu computador**, sin GitHub ni 
    ```
 
    Abre http://localhost:8000: debe verse la pantalla con «Conectado · LangChain».
+
+   En Windows PowerShell también puedes seguir la guía autocontenida de
+   [`proyecto-vercel/README.md`](proyecto-vercel/README.md), que usa
+   `.venv\Scripts\python.exe` y comandos compatibles con Windows.
 3. **Prueba el agente con los cuatro casos**, desde otra terminal, en la carpeta que contiene `probar_endpoint.py`:
 
    ```

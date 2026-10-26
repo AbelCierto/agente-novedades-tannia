@@ -1,12 +1,16 @@
-# Conectar Facebook e Instagram (Meta Graph API)
+# Conectar Instagram (Meta Graph API)
 
-Guía para obtener las credenciales que usa el MVP para publicar en **Facebook** e **Instagram**:
+Guía para obtener las credenciales que usa el MVP para publicar en **Instagram**:
 
 ```
 META_PAGE_ID
 META_PAGE_ACCESS_TOKEN
 META_IG_USER_ID        (solo si publicarás en Instagram)
 ```
+
+> Facebook ya no se publica mediante Meta. Conecta la Página de Facebook directamente
+> en el perfil de Zernio y configura `ZERNIO_API_KEY` en Vercel. Esta guía solo aplica
+> al flujo de Instagram.
 
 > Para publicar en **tus propias** cuentas basta el **modo desarrollo** de la app: no necesitas la App Review de Meta.
 > La App Review solo hace falta si vas a publicar en cuentas de terceros.
@@ -49,13 +53,14 @@ No necesitas configurar pantallas de login: usaremos el **Graph API Explorer** p
 1. Abre el **Graph API Explorer**: **https://developers.facebook.com/tools/explorer**
 2. Arriba a la derecha, en **Meta App**, selecciona tu app.
 3. En **User or Page**, deja **User Token**.
-4. Clic en **Add a Permission** / **Permissions** y marca estos **7 permisos** (con todos juntos funciona; faltar `business_management` hace que no aparezcan las Páginas):
+4. Clic en **Add a Permission** / **Permissions** y marca estos permisos:
 
    | Permiso | Para qué |
    |---|---|
    | `pages_show_list` | listar tus Páginas |
    | `pages_read_engagement` | leer datos de la Página |
    | `pages_manage_posts` | **publicar** en la Página |
+   | `pages_manage_engagement` | gestionar acciones de publicación de la Página |
    | `business_management` | que tus Páginas aparezcan en `me/accounts` (imprescindible) |
    | `instagram_basic` | leer la cuenta de IG (solo IG) |
    | `instagram_content_publish` | **publicar** en Instagram (solo IG) |
@@ -91,12 +96,16 @@ python _meta_setup.py
   META_IG_USER_ID=...
   ```
 
-**Token de larga duración (opcional):** si antes de correr el script defines `META_APP_ID` y `META_APP_SECRET`
-(los ves en *App → Settings → Basic*), el Page Token saldrá **sin expiración**:
+**Token de larga duración:** antes de correr el script define `META_APP_ID` y `META_APP_SECRET`
+(los ves en *App → Settings → Basic*). El script intercambia el User Access Token corto
+con `GET /oauth/access_token` usando `fb_exchange_token` y luego obtiene el Page Token:
 
 ```powershell
 $env:META_APP_ID="tu_app_id"; $env:META_APP_SECRET="tu_app_secret"; python _meta_setup.py
 ```
+
+El script ya no continúa si esas dos variables faltan, para evitar generar por accidente
+un Page Token basado en un token temporal.
 
 ### Opción B — A mano en el Graph API Explorer
 
@@ -124,7 +133,7 @@ META_PAGE_ID=123456789012345
 META_PAGE_ACCESS_TOKEN=EAAG...tu_token
 META_IG_USER_ID=1784xxxxxxxxxxx
 META_PUBLICAR=              # vacío = borrador/sin publicar (revisión); "ahora" = publica en vivo
-META_GRAPH_VERSION=v21.0
+META_GRAPH_VERSION=v26.0
 ```
 
 Guarda y **reinicia el servidor**:
@@ -155,7 +164,8 @@ Este proyecto no solicita ni envía `publish_actions`. Facebook se publica media
 - `POST /{META_PAGE_ID}/feed` cuando no hay imagen.
 - `POST /{META_PAGE_ID}/photos` cuando hay imagen.
 
-Ambas llamadas usan `META_PAGE_ACCESS_TOKEN` y el permiso actual `pages_manage_posts`.
+Ambas llamadas usan `META_PAGE_ACCESS_TOKEN` y los permisos actuales
+`pages_manage_posts`, `pages_manage_engagement` y `pages_read_engagement`.
 Instagram usa `instagram_content_publish` mediante `/media` y `/media_publish`.
 
 Si la respuesta contiene `publish_actions is not available`, la solicitud no está
@@ -171,7 +181,7 @@ agregues `publish_actions`, porque Meta lo retiró.
 
 | Mensaje / código | Causa probable | Qué hacer |
 |---|---|---|
-| `me/accounts` devuelve `{"data": []}` | El token no incluyó las Páginas (falta `business_management` o no elegiste la Página al autorizar) | Regenera el token con los **7 permisos** y elige **"Opt in to all Pages"** |
+| `me/accounts` devuelve `{"data": []}` | El token no incluyó las Páginas (falta `business_management` o no elegiste la Página al autorizar) | Regenera el token con los permisos requeridos y elige **"Opt in to all Pages"** |
 | `backend_acceso` · "Meta rechazó el token" | Token expirado o sin permisos | Regenera el token (paso 3) con los permisos correctos; usa token de larga duración |
 | `publish_actions is not available` | Despliegue/backend o token perteneciente a un flujo antiguo | Confirma que Vercel ejecuta esta versión, usa un Page Access Token nuevo y `pages_manage_posts`; no solicites `publish_actions` |
 | `sin_configurar` · falta META_PAGE_ID | No pusiste las variables o no reiniciaste | Completa el `.env` y reinicia el servidor |

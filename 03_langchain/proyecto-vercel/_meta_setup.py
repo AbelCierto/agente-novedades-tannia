@@ -5,7 +5,8 @@ Uso:
     python _meta_setup.py
 
 Pega el User Access Token del Graph API Explorer cuando lo pida (no queda en el historial).
-Opcional, para un token de larga duración: define antes META_APP_ID y META_APP_SECRET en tu entorno.
+Antes de ejecutar, define META_APP_ID y META_APP_SECRET para intercambiarlo por
+un User Access Token de larga duración.
 
 Seguridad: el token de Página es un secreto. Cópialo a tu .env; NO lo pegues en ningún chat ni lo subas a git.
 """
@@ -16,7 +17,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 
-GRAPH = "https://graph.facebook.com/" + (os.getenv("META_GRAPH_VERSION", "").strip() or "v21.0")
+GRAPH = "https://graph.facebook.com/" + (os.getenv("META_GRAPH_VERSION", "").strip() or "v26.0")
 
 
 def get(ruta, params):
@@ -41,18 +42,32 @@ if not token or len(token) < 20:
         '  $env:FB_USER_TOKEN="EAAG...tu_token_largo"; python _meta_setup.py'
     )
 
-# Opcional: extender a token de larga duración si tienes app id y secret.
 app_id = os.getenv("META_APP_ID", "").strip()
 app_secret = os.getenv("META_APP_SECRET", "").strip()
-if app_id and app_secret:
-    larga = get("/oauth/access_token", {
-        "grant_type": "fb_exchange_token", "client_id": app_id,
-        "client_secret": app_secret, "fb_exchange_token": token,
-    })
-    token = larga.get("access_token", token)
+if not app_id or not app_secret:
+    raise SystemExit(
+        "Faltan META_APP_ID o META_APP_SECRET. Son obligatorios para no generar "
+        "un Page Token basado en un User Access Token temporal."
+    )
+
+# Intercambia el token corto por uno de larga duración antes de pedir /me/accounts.
+larga = get("/oauth/access_token", {
+    "grant_type": "fb_exchange_token",
+    "client_id": app_id,
+    "client_secret": app_secret,
+    "fb_exchange_token": token,
+})
+token_largo = larga.get("access_token") if isinstance(larga, dict) else None
+if not token_largo:
+    raise SystemExit("Meta no devolvió un access_token de larga duración.")
+token = token_largo
+expira_en = larga.get("expires_in") if isinstance(larga, dict) else None
+if expira_en:
+    print(f"Token de usuario extendido. Duración indicada por Meta: {expira_en} segundos.")
+else:
     print("Token de usuario extendido a larga duración.")
 
-cuentas = get("/me/accounts", {"access_token": token, "fields": "id,name,access_token"})
+cuentas = get("/me/accounts", {"access_token": token, "fields": "id,name,access_token,tasks"})
 paginas = cuentas.get("data", [])
 if not paginas:
     raise SystemExit("No se encontraron Páginas. ¿Diste el permiso pages_show_list y eres admin de alguna Página?")
@@ -67,6 +82,12 @@ pagina = paginas[idx]
 
 page_id = pagina["id"]
 page_token = pagina["access_token"]  # token de Página (de larga duración si el de usuario lo era)
+tasks = pagina.get("tasks") or []
+if tasks:
+    print("\nTareas autorizadas para la Página:")
+    print("  " + ", ".join(tasks))
+    if "CREATE_CONTENT" not in tasks:
+        print("ADVERTENCIA: este token no tiene CREATE_CONTENT; Meta no permitirá publicar en Facebook.")
 
 ig = get(f"/{page_id}", {"access_token": page_token, "fields": "instagram_business_account"})
 ig_id = (ig.get("instagram_business_account") or {}).get("id", "")
