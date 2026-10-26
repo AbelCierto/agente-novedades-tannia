@@ -148,12 +148,32 @@ python -m uvicorn app:app --env-file .env --port 8000
 
 ---
 
+### Qué permisos usa este código
+
+Este proyecto no solicita ni envía `publish_actions`. Facebook se publica mediante:
+
+- `POST /{META_PAGE_ID}/feed` cuando no hay imagen.
+- `POST /{META_PAGE_ID}/photos` cuando hay imagen.
+
+Ambas llamadas usan `META_PAGE_ACCESS_TOKEN` y el permiso actual `pages_manage_posts`.
+Instagram usa `instagram_content_publish` mediante `/media` y `/media_publish`.
+
+Si la respuesta contiene `publish_actions is not available`, la solicitud no está
+saliendo de esta versión del proyecto: normalmente indica que Vercel ejecuta un
+despliegue anterior, que `META_PAGE_ACCESS_TOKEN` proviene de un flujo antiguo, o
+que se está llamando a otro endpoint/backend. Verifica el despliegue activo y
+genera nuevamente el Page Access Token con los permisos de la sección 3; no
+agregues `publish_actions`, porque Meta lo retiró.
+
+---
+
 ## Solución de problemas
 
 | Mensaje / código | Causa probable | Qué hacer |
 |---|---|---|
 | `me/accounts` devuelve `{"data": []}` | El token no incluyó las Páginas (falta `business_management` o no elegiste la Página al autorizar) | Regenera el token con los **7 permisos** y elige **"Opt in to all Pages"** |
 | `backend_acceso` · "Meta rechazó el token" | Token expirado o sin permisos | Regenera el token (paso 3) con los permisos correctos; usa token de larga duración |
+| `publish_actions is not available` | Despliegue/backend o token perteneciente a un flujo antiguo | Confirma que Vercel ejecuta esta versión, usa un Page Access Token nuevo y `pages_manage_posts`; no solicites `publish_actions` |
 | `sin_configurar` · falta META_PAGE_ID | No pusiste las variables o no reiniciaste | Completa el `.env` y reinicia el servidor |
 | IG: "no tiene IG Business vinculada" | La Página no tiene Instagram Business | Vincula IG Business a la Página (paso 0) |
 | IG falla al subir la imagen | Falta `ZERNIO_API_KEY` válida (hospeda la imagen) o `OPENAI_API_KEY` | Define ambas, o envía tú una `imagen_url` |

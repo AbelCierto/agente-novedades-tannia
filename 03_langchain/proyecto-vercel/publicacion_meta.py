@@ -69,6 +69,14 @@ def _traducir(status: int, cuerpo: Any) -> ErrorContrato:
     err = cuerpo.get("error", {}) if isinstance(cuerpo, dict) else {}
     detalle = limpiar_texto(err.get("message"), 160) or f"Meta respondió {status}"
     codigo_meta = err.get("code")
+    if "publish_actions" in detalle.lower():
+        return ErrorContrato(
+            "backend_acceso",
+            "Meta recibió una solicitud con un permiso antiguo (publish_actions).",
+            502,
+            "el despliegue activo no coincide con este código o el token/app pertenece a un flujo antiguo; "
+            "publica con un Page Access Token y pages_manage_posts",
+        )
     if codigo_meta == 190 or status in (401, 403) or err.get("type") == "OAuthException":
         return ErrorContrato("backend_acceso", "Meta rechazó el token o el permiso.", 502, detalle)
     if codigo_meta in (4, 17, 32, 613):  # límites de uso de la Graph API
